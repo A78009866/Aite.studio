@@ -1,4 +1,5 @@
 name: Aite Studio APK Builder
+
 on:
   repository_dispatch:
     types: [build-apk]
@@ -6,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # ضروري للسماح للأكشن بإنشاء روابط التحميل (Releases)
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -22,12 +25,12 @@ jobs:
           mkdir -p gradle/wrapper app/src/main/res/mipmap-mdpi
           curl -L https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           
-          # Inject User Data
+          # Inject User Data (AppName, Package, URL)
           sed -i "s/APP_NAME_PLACEHOLDER/${{ github.event.client_payload.app_name }}/g" app/src/main/AndroidManifest.xml
           sed -i "s/APP_PACKAGE_NAME/${{ github.event.client_payload.package_name }}/g" app/build.gradle
           sed -i "s|WEB_URL_PLACEHOLDER|${{ github.event.client_payload.app_url }}|g" app/src/main/java/com/aite/studio/MainActivity.kt
           
-          # Icon Processing
+          # Icon Processing (Base64 to Image)
           echo "${{ github.event.client_payload.icon_data }}" | cut -d',' -f2 | base64 -d > app/src/main/res/mipmap-mdpi/ic_launcher.png
 
       - name: Build APK
@@ -35,10 +38,24 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
+      - name: Create GitHub Release (Direct Download Link)
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Release for ${{ github.event.client_payload.app_name }}
+          files: app/build/outputs/apk/debug/app-debug.apk
+          body: "تم بناء التطبيق بنجاح عبر Aite.studio"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Upload to Telegram
         uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
-          message: "✅ تم بناء تطبيق: ${{ github.event.client_payload.app_name }}"
+          message: |
+            ✅ تم بناء تطبيق جديد!
+            اسم التطبيق: ${{ github.event.client_payload.app_name }}
+            رابط التحميل المباشر: https://github.com/${{ github.repository }}/releases/download/build-${{ github.run_number }}/app-debug.apk
           document: app/build/outputs/apk/debug/app-debug.apk
