@@ -33,16 +33,11 @@
 
         .navbar {
             padding: 1.5rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            max-width: 1400px;
-            margin: 0 auto;
-            width: 100%;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border); max-width: 1400px; margin: 0 auto; width: 100%;
         }
 
-        .brand { font-family: var(--font-en); font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px; }
+        .brand { font-family: var(--font-en); font-size: 1.8rem; font-weight: 700; }
         .brand .dot { color: var(--primary); }
 
         .lang-btn {
@@ -56,7 +51,6 @@
         }
 
         .config-panel { flex: 1; min-width: 350px; max-width: 500px; }
-
         h2 { font-size: 2rem; margin-bottom: 0.5rem; }
         .subtitle { color: var(--text-muted); margin-bottom: 2.5rem; }
         
@@ -65,14 +59,13 @@
             padding: 16px; border-radius: 12px; color: white; font-size: 1rem; margin-bottom: 1.5rem; font-family: inherit;
         }
         .input-field:focus { border-color: var(--primary); }
-        
         label { display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem; }
 
         .upload-box {
             border: 2px dashed var(--border); border-radius: 12px; padding: 2rem; text-align: center;
             cursor: pointer; transition: 0.3s; background: var(--bg-card); margin-bottom: 1.5rem;
         }
-        .upload-box:hover { border-color: var(--primary); background: #1a1a1a; }
+        .upload-box:hover { border-color: var(--primary); }
         
         .build-btn {
             width: 100%; background: var(--text-main); color: var(--bg-dark); padding: 18px;
@@ -80,7 +73,6 @@
             display: flex; align-items: center; justify-content: center; gap: 10px; font-family: inherit;
         }
         .build-btn:hover { background: var(--primary); }
-        .build-btn:disabled { opacity: 0.5; cursor: wait; }
 
         /* Status UI */
         #statusContainer {
@@ -89,34 +81,45 @@
         .progress-track { width: 100%; height: 6px; background: #333; border-radius: 10px; overflow: hidden; margin-top: 10px; }
         .progress-fill { width: 0%; height: 100%; background: var(--primary); transition: width 0.5s ease; }
 
+        /* PHONE PREVIEW ENHANCED */
         .preview-panel { flex: 1; display: flex; justify-content: center; min-width: 300px; }
         .phone-frame {
-            width: 300px; height: 600px; background: black; border-radius: 40px; border: 10px solid #222;
-            position: relative; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+            width: 300px; height: 610px; background: #000; border-radius: 45px; border: 12px solid #282828;
+            position: relative; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.6);
         }
+        /* Status Bar Mockup */
+        .status-bar {
+            width: 100%; height: 35px; padding: 0 20px; display: flex; justify-content: space-between;
+            align-items: center; font-size: 12px; color: white; position: absolute; top: 0; z-index: 10;
+            background: rgba(0,0,0,0.1); font-family: sans-serif;
+        }
+        .status-bar .right-icons { display: flex; gap: 5px; }
+
         .screen {
-            width: 100%; height: 100%; background: linear-gradient(135deg, #1e1e1e 0%, #3a3a3a 100%);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            width: 100%; height: 100%; background: linear-gradient(135deg, #121212 0%, #252525 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;
         }
         
-        /* Placeholder Icon Fix: Using CSS instead of broken URL */
         .icon-placeholder {
-            width: 90px; height: 90px; border-radius: 18px; background: #333; 
+            width: 85px; height: 85px; border-radius: 20px; background: #333; 
             display: flex; align-items: center; justify-content: center; margin-bottom: 20px;
-            color: #555; font-size: 2rem; border: 1px solid #444;
+            color: #555; font-size: 2.5rem; border: 1px solid #444;
         }
-        .app-icon-display { width: 90px; height: 90px; border-radius: 18px; object-fit: cover; display: none; margin-bottom: 20px; }
+        .app-icon-display { width: 85px; height: 85px; border-radius: 20px; object-fit: cover; display: none; margin-bottom: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+        .app-name-display { font-size: 1.3rem; font-weight: 600; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         
-        .app-name-display { font-size: 1.4rem; font-weight: 600; color: white; font-family: var(--font-ar); }
-        
+        /* Navigation Bar Mockup */
+        .nav-bar {
+            width: 100%; height: 50px; position: absolute; bottom: 0; display: flex;
+            justify-content: space-around; align-items: center; color: #555; font-size: 14px;
+        }
+
         .toast {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
             background: #333; color: white; padding: 12px 24px; border-radius: 50px;
-            font-size: 0.9rem; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 1000;
+            font-size: 0.9rem; opacity: 0; transition: 0.3s; z-index: 1000;
         }
         .toast.show { opacity: 1; bottom: 40px; }
-
-        footer { text-align: center; padding: 2rem; color: #444; font-size: 0.8rem; }
     </style>
 </head>
 <body>
@@ -158,19 +161,33 @@
                     <span id="currentStatus" style="color:var(--primary)">Processing...</span>
                 </div>
                 <div class="progress-track"><div id="progressBar" class="progress-fill"></div></div>
-                <div style="margin-top:5px; font-size:0.7rem; color:#666; text-align: left;" dir="ltr">
-                     <a id="actionLink" href="#" target="_blank" style="color:white; display:none">View on GitHub</a>
+                <div style="margin-top:10px; font-size:0.7rem; color:#666; text-align: left;" dir="ltr">
+                     <a id="actionLink" href="#" target="_blank" style="color:white; display:none">View on GitHub Actions</a>
                 </div>
             </div>
         </div>
 
         <div class="preview-panel">
             <div class="phone-frame">
+                <div class="status-bar" dir="ltr">
+                    <span id="phoneTime">12:45</span>
+                    <div class="right-icons">
+                        <i class="fa-solid fa-signal"></i>
+                        <i class="fa-solid fa-wifi"></i>
+                        <i class="fa-solid fa-battery-three-quarters"></i>
+                    </div>
+                </div>
+
                 <div class="screen">
                     <div id="iconPlaceholder" class="icon-placeholder"><i class="fa-brands fa-android"></i></div>
                     <img id="previewIcon" class="app-icon-display" alt="Icon">
-                    
                     <div id="previewName" class="app-name-display">اسم التطبيق</div>
+                    
+                    <div class="nav-bar">
+                        <i class="fa-solid fa-chevron-left"></i>
+                        <i class="fa-regular fa-circle"></i>
+                        <i class="fa-solid fa-stop"></i>
+                    </div>
                 </div>
             </div>
         </div>
@@ -180,7 +197,6 @@
     <div id="toast" class="toast"></div>
 
     <script>
-        // Translations Data
         const translations = {
             ar: { dir: "rtl", font: "'Cairo', sans-serif", title: "أنشئ تطبيقك الخاص", subtitle: "حول موقعك إلى تطبيق أندرويد.", appNameLabel: "اسم التطبيق", appUrlLabel: "رابط الموقع", packageLabel: "معرف الحزمة", iconLabel: "أيقونة التطبيق", uploadText: "رفع الصورة", btnBuild: "إنشاء APK", status_q: "جاري التحضير...", status_p: "جاري البناء...", status_s: "تم بنجاح!", status_f: "فشل البناء", err_icon: "يجب رفع أيقونة", err_net: "خطأ اتصال" },
             en: { dir: "ltr", font: "'Outfit', sans-serif", title: "Create Your App", subtitle: "Convert website to Android App.", appNameLabel: "App Name", appUrlLabel: "Website URL", packageLabel: "Package ID", iconLabel: "App Icon", uploadText: "Upload Image", btnBuild: "Build APK", status_q: "Queued...", status_p: "Building...", status_s: "Success!", status_f: "Failed", err_icon: "Upload Icon first", err_net: "Connection Error" }
@@ -190,7 +206,14 @@
         let uploadedBase64 = null;
         let pollingInterval = null;
 
-        // Language Switch
+        // Update Phone Time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('phoneTime').innerText = now.getHours() + ":" + now.getMinutes().toString().padStart(2, '0');
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
         document.getElementById('langToggle').addEventListener('click', () => {
             currentLang = currentLang === 'ar' ? 'en' : 'ar';
             const t = translations[currentLang];
@@ -205,50 +228,58 @@
             document.getElementById('previewName').innerText = val || (currentLang === 'ar' ? 'اسم التطبيق' : 'App Name');
         }
 
+        // IMAGE COMPRESSION LOGIC (CRITICAL FOR GITHUB LIMIT)
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    uploadedBase64 = e.target.result;
-                    // Show Image, Hide Placeholder
-                    document.getElementById('previewIcon').src = uploadedBase64;
-                    document.getElementById('previewIcon').style.display = 'block';
-                    document.getElementById('iconPlaceholder').style.display = 'none';
-                    document.getElementById('uploadText').innerHTML = '<i class="fa-solid fa-check" style="color:var(--primary)"></i>';
-                }
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX_SIZE = 512;
+                        let width = img.width; let height = img.height;
+                        if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } }
+                        else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
+                        canvas.width = width; canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Convert to small JPEG
+                        uploadedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                        document.getElementById('previewIcon').src = uploadedBase64;
+                        document.getElementById('previewIcon').style.display = 'block';
+                        document.getElementById('iconPlaceholder').style.display = 'none';
+                        document.getElementById('uploadText').innerHTML = '<i class="fa-solid fa-check" style="color:var(--primary)"></i>';
+                    };
+                    img.src = e.target.result;
+                };
                 reader.readAsDataURL(file);
             }
         }
 
         function showToast(msg, isError) {
             const t = document.getElementById('toast');
-            t.innerText = msg;
-            t.style.background = isError ? '#ff4444' : '#333';
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 3000);
+            t.innerText = msg; t.style.background = isError ? '#ff4444' : '#333';
+            t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000);
         }
 
-        // Monitoring Logic
         function startMonitoring() {
             const statusBox = document.getElementById('statusContainer');
             const statusTxt = document.getElementById('currentStatus');
             const bar = document.getElementById('progressBar');
             const link = document.getElementById('actionLink');
             const t = translations[currentLang];
-
             statusBox.style.display = 'block';
             
             pollingInterval = setInterval(async () => {
                 try {
                     const res = await fetch('/api/status');
                     const data = await res.json();
-
                     if(data.html_url) { link.href = data.html_url; link.style.display = 'inline'; }
-
                     if(data.status === 'queued') {
                         statusTxt.innerText = t.status_q; bar.style.width = '20%'; bar.style.background = '#FDD835';
-                    } else if(data.status === 'in_progress') {
+                    } else if(data.status === 'in_progress' || data.status === 'waiting') {
                         statusTxt.innerText = t.status_p; bar.style.width = '60%'; bar.style.background = '#29b6f6';
                     } else if(data.status === 'completed') {
                         clearInterval(pollingInterval);
@@ -258,19 +289,16 @@
                             statusTxt.innerText = t.status_f; bar.style.width = '100%'; bar.style.background = '#ff4444';
                         }
                     }
-                } catch(e) { console.error(e); }
+                } catch(e) {}
             }, 5000);
         }
 
         document.getElementById('buildForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const t = translations[currentLang];
-            const btn = document.querySelector('.build-btn');
-            
             if(!uploadedBase64) { showToast(t.err_icon, true); return; }
-
-            btn.disabled = true;
-            btn.style.opacity = '0.5';
+            const btn = document.querySelector('.build-btn');
+            btn.disabled = true; btn.style.opacity = '0.5';
 
             try {
                 const res = await fetch('/api/build', {
@@ -283,18 +311,9 @@
                         iconBase64: uploadedBase64
                     })
                 });
-                
-                if(res.ok) {
-                    startMonitoring();
-                } else {
-                    const err = await res.json();
-                    showToast(err.error || t.err_net, true);
-                    btn.disabled = false; btn.style.opacity = '1';
-                }
-            } catch(err) {
-                showToast(t.err_net, true);
-                btn.disabled = false; btn.style.opacity = '1';
-            }
+                if(res.ok) startMonitoring();
+                else { const err = await res.json(); showToast(err.error || t.err_net, true); btn.disabled = false; btn.style.opacity = '1'; }
+            } catch(err) { showToast(t.err_net, true); btn.disabled = false; btn.style.opacity = '1'; }
         });
     </script>
 </body>
