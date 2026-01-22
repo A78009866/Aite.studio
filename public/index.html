@@ -15,18 +15,19 @@
             --text-main: #ffffff;
             --text-muted: #888888;
             --border: #333333;
+            --font-ar: 'Cairo', sans-serif;
+            --font-en: 'Outfit', sans-serif;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
 
         body {
-            font-family: 'Cairo', sans-serif;
+            font-family: var(--font-ar);
             background-color: var(--bg-dark);
             color: var(--text-main);
             min-height: 100vh;
             display: flex; flex-direction: column;
             overflow-x: hidden;
-            transition: 0.3s;
         }
 
         .navbar {
@@ -35,15 +36,13 @@
             border-bottom: 1px solid var(--border); max-width: 1400px; margin: 0 auto; width: 100%;
         }
 
-        .brand { font-family: 'Outfit', sans-serif; font-size: 1.8rem; font-weight: 700; }
+        .brand { font-family: var(--font-en); font-size: 1.8rem; font-weight: 700; }
         .brand .dot { color: var(--primary); }
 
         .lang-btn {
             background: transparent; border: 1px solid var(--border); color: var(--text-muted);
             padding: 8px 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px;
-            font-family: 'Outfit', sans-serif; font-weight: 500; transition: 0.3s;
         }
-        .lang-btn:hover { border-color: var(--primary); color: white; }
 
         .main-container {
             flex: 1; display: flex; flex-wrap: wrap; max-width: 1400px; margin: 0 auto; width: 100%;
@@ -65,6 +64,7 @@
             border: 2px dashed var(--border); border-radius: 12px; padding: 1.5rem; text-align: center;
             cursor: pointer; transition: 0.3s; background: var(--bg-card); margin-bottom: 1.5rem;
         }
+        .upload-box:hover { border-color: var(--primary); background: #1a1a1a; }
         
         .build-btn {
             width: 100%; background: var(--text-main); color: var(--bg-dark); padding: 18px;
@@ -72,9 +72,13 @@
             display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s;
         }
         .build-btn:hover { background: var(--primary); transform: translateY(-2px); }
+        .build-btn:disabled { opacity: 0.5; cursor: wait; transform: none; }
 
         /* Status UI */
-        #statusContainer { margin-top: 25px; padding: 25px; background: #111; border-radius: 16px; border: 1px solid #222; display: none; }
+        #statusContainer {
+            margin-top: 25px; padding: 25px; background: #111; border-radius: 16px; border: 1px solid #222; display: none;
+            animation: fadeIn 0.5s ease;
+        }
         .progress-track { width: 100%; height: 8px; background: #222; border-radius: 10px; overflow: hidden; margin-top: 15px; }
         .progress-fill { width: 0%; height: 100%; background: var(--primary); transition: width 0.5s ease; box-shadow: 0 0 10px var(--primary); }
 
@@ -84,33 +88,29 @@
             width: 310px; height: 630px; background: #000; border-radius: 45px; border: 12px solid #1f1f1f;
             position: relative; overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,0.7);
         }
-        
         .status-bar {
-            position: absolute; top: 0; width: 100%; height: 35px; padding: 0 25px;
-            display: flex; justify-content: space-between; align-items: center;
-            font-size: 12px; color: white; z-index: 10; font-family: 'Outfit', sans-serif;
+            width: 100%; height: 40px; padding: 0 25px; display: flex; justify-content: space-between;
+            align-items: center; font-size: 12px; color: white; position: absolute; top: 0; z-index: 10;
         }
-
         .screen {
             width: 100%; height: 100%; background: linear-gradient(145deg, #1a1a1a 0%, #000 100%);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         .app-icon-display { width: 90px; height: 90px; border-radius: 22px; object-fit: cover; display: none; margin-bottom: 20px; box-shadow: 0 15px 30px rgba(0,0,0,0.5); }
         .icon-placeholder { width: 90px; height: 90px; border-radius: 22px; background: #222; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; color: #444; font-size: 2.5rem; }
-        .app-name-display { font-size: 1.4rem; font-weight: 600; color: white; text-align: center; }
+        .app-name-display { font-size: 1.4rem; font-weight: 600; color: white; text-align: center; width: 80%; }
 
         .toast {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: #222; color: white; padding: 12px 24px; border-radius: 50px;
-            font-size: 0.9rem; opacity: 0; transition: 0.3s; z-index: 2000;
+            background: #222; color: white; padding: 14px 28px; border-radius: 50px;
+            font-size: 0.9rem; opacity: 0; transition: 0.3s; z-index: 2000; border: 1px solid #333;
         }
         .toast.show { opacity: 1; bottom: 45px; }
 
-        footer { text-align: center; padding: 3rem; color: #333; font-size: 0.8rem; }
-        
-        /* LTR support for English */
-        body.en { direction: ltr; font-family: 'Outfit', sans-serif; }
-        body.en .navbar, body.en .main-container { direction: ltr; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        footer { text-align: center; padding: 3rem; color: #333; font-size: 0.8rem; letter-spacing: 1px; }
     </style>
 </head>
 <body>
@@ -122,34 +122,34 @@
 
     <div class="main-container">
         <div class="config-panel">
-            <h2 id="ui-title">أنشئ تطبيقك الخاص</h2>
-            <p class="subtitle" id="ui-subtitle">حوّل موقعك الإلكتروني إلى تطبيق Android احترافي.</p>
+            <h2 data-i18n="title">أنشئ تطبيقك الخاص</h2>
+            <p class="subtitle" data-i18n="subtitle">حوّل موقعك الإلكتروني إلى تطبيق Android احترافي في دقائق.</p>
             
             <form id="buildForm">
-                <label id="label-name">اسم التطبيق</label>
+                <label data-i18n="appNameLabel">اسم التطبيق</label>
                 <input type="text" class="input-field" id="appName" placeholder="اسم تطبيقك" oninput="updatePreview()" required>
                 
-                <label id="label-url">رابط الموقع</label>
+                <label data-i18n="appUrlLabel">رابط الموقع</label>
                 <input type="url" class="input-field" id="appUrl" placeholder="https://example.com" required>
                 
-                <label id="label-package">معرف الحزمة (Package ID)</label>
-                <input type="text" class="input-field" id="packageName" placeholder="com.aite.studio" required>
+                <label data-i18n="packageLabel">معرف الحزمة (Package ID)</label>
+                <input type="text" class="input-field" id="packageName" placeholder="com.company.app" required>
                 
-                <label id="label-icon">أيقونة التطبيق</label>
+                <label data-i18n="iconLabel">أيقونة التطبيق</label>
                 <div class="upload-box" onclick="document.getElementById('fileInput').click()">
-                    <div id="uploadText"><i class="fa-solid fa-cloud-arrow-up" style="font-size: 1.5rem; margin-bottom: 10px; display: block;"></i> <span id="ui-upload">اضغط لرفع الأيقونة</span></div>
-                    <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)" hidden>
+                    <div id="uploadText"><i class="fa-solid fa-cloud-arrow-up" style="font-size: 1.5rem; margin-bottom: 10px; display: block;"></i> <span data-i18n="uploadText">اضغط لرفع الأيقونة</span></div>
+                    <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)" style="display:none">
                 </div>
 
                 <button type="submit" class="build-btn" id="submitBtn">
-                    <span id="ui-btn">بدء عملية البناء</span> <i class="fa-solid fa-bolt"></i>
+                    <span id="btnText" data-i18n="btnBuild">بدء عملية البناء</span> <i class="fa-solid fa-bolt"></i>
                 </button>
             </form>
 
             <div id="statusContainer">
                 <div style="display:flex; justify-content:space-between; align-items: center;">
-                    <span style="color:#888; font-size: 0.85rem;" id="ui-status-title">حالة البناء:</span>
-                    <span id="currentStatus" style="color:var(--primary); font-weight: bold;">...</span>
+                    <span style="color:#888; font-size: 0.85rem;" data-i18n="statusTitle">حالة البناء:</span>
+                    <span id="currentStatus" style="color:var(--primary); font-weight: bold; font-size: 0.9rem;">...</span>
                 </div>
                 <div class="progress-track"><div id="progressBar" class="progress-fill"></div></div>
                 <div id="resultArea" style="margin-top: 15px;"></div>
@@ -160,7 +160,7 @@
             <div class="phone-frame">
                 <div class="status-bar" dir="ltr">
                     <span id="phoneTime">12:00</span>
-                    <div style="display:flex; gap:5px;">
+                    <div style="display:flex; gap:6px; opacity: 0.8;">
                         <i class="fa-solid fa-signal"></i>
                         <i class="fa-solid fa-wifi"></i>
                         <i class="fa-solid fa-battery-full"></i>
@@ -175,102 +175,129 @@
         </div>
     </div>
 
-    <footer>&copy; 2026 AITE STUDIO PRO</footer>
+    <footer>&copy; 2026 AITE STUDIO PRO. POWERED BY CLOUD BUILD.</footer>
     <div id="toast" class="toast"></div>
 
     <script>
-        const langData = {
-            ar: {
-                title: "أنشئ تطبيقك الخاص", subtitle: "حوّل موقعك الإلكتروني إلى تطبيق Android احترافي.",
-                name: "اسم التطبيق", url: "رابط الموقع", package: "معرف الحزمة", icon: "أيقونة التطبيق",
-                upload: "اضغط لرفع الأيقونة", btn: "بدء عملية البناء", status: "حالة البناء:",
-                p: "جاري البناء...", s: "اكتمل بنجاح!", dl: "تحميل التطبيق الآن"
-            },
-            en: {
-                title: "Create Your App", subtitle: "Convert your website into a pro Android App.",
-                name: "App Name", url: "Website URL", package: "Package ID", icon: "App Icon",
-                upload: "Click to upload icon", btn: "Start Building", status: "Build Status:",
-                p: "Building APK...", s: "Success!", dl: "Download APK Now"
-            }
+        const translations = {
+            ar: { dir: "rtl", title: "أنشئ تطبيقك الخاص", subtitle: "حوّل موقعك الإلكتروني إلى تطبيق Android احترافي.", appNameLabel: "اسم التطبيق", appUrlLabel: "رابط الموقع", packageLabel: "معرف الحزمة", iconLabel: "أيقونة التطبيق", uploadText: "اضغط لرفع الأيقونة", btnBuild: "بدء عملية البناء", status_q: "في قائمة الانتظار...", status_p: "جاري بناء الملف (3-5 دقائق)...", status_s: "اكتمل البناء بنجاح!", status_f: "فشل البناء، حاول مجدداً", download_btn: "تحميل APK المباشر" },
+            en: { dir: "ltr", title: "Create Your App", subtitle: "Convert your website into a pro Android App.", appNameLabel: "App Name", appUrlLabel: "Website URL", packageLabel: "Package ID", iconLabel: "App Icon", uploadText: "Click to upload icon", btnBuild: "Start Building", status_q: "Queued...", status_p: "Building APK (3-5 mins)...", status_s: "Build Successful!", status_f: "Build Failed", download_btn: "Download Direct APK" }
         };
 
         let currentLang = 'ar';
         let uploadedBase64 = null;
+        let pollingInterval = null;
 
-        document.getElementById('langToggle').addEventListener('click', () => {
-            currentLang = currentLang === 'ar' ? 'en' : 'ar';
-            document.body.classList.toggle('en');
-            const d = langData[currentLang];
-            document.getElementById('ui-title').innerText = d.title;
-            document.getElementById('ui-subtitle').innerText = d.subtitle;
-            document.getElementById('label-name').innerText = d.name;
-            document.getElementById('label-url').innerText = d.url;
-            document.getElementById('label-package').innerText = d.package;
-            document.getElementById('label-icon').innerText = d.icon;
-            document.getElementById('ui-upload').innerText = d.upload;
-            document.getElementById('ui-btn').innerText = d.btn;
-            document.getElementById('ui-status-title').innerText = d.status;
-            document.getElementById('langToggle').innerHTML = `<i class="fa-solid fa-globe"></i> ${currentLang === 'ar' ? 'English' : 'العربية'}`;
-        });
-
+        // Clock logic
         function updateClock() {
             const now = new Date();
             document.getElementById('phoneTime').innerText = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
         }
         setInterval(updateClock, 1000); updateClock();
 
+        document.getElementById('langToggle').addEventListener('click', () => {
+            currentLang = currentLang === 'ar' ? 'en' : 'ar';
+            const t = translations[currentLang];
+            document.documentElement.dir = t.dir;
+            document.getElementById('langToggle').innerHTML = currentLang === 'ar' ? '<i class="fa-solid fa-globe"></i> English' : '<i class="fa-solid fa-globe"></i> العربية';
+            document.querySelectorAll('[data-i18n]').forEach(el => el.innerText = t[el.getAttribute('data-i18n')]);
+            updatePreview();
+        });
+
         function updatePreview() {
-            document.getElementById('previewName').innerText = document.getElementById('appName').value || 'App Name';
+            const val = document.getElementById('appName').value;
+            document.getElementById('previewName').innerText = val || (currentLang === 'ar' ? 'اسم التطبيق' : 'App Name');
         }
 
+        // Image Compression (Vital for GitHub)
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = e => {
-                    uploadedBase64 = e.target.result;
-                    document.getElementById('previewIcon').src = uploadedBase64;
-                    document.getElementById('previewIcon').style.display = 'block';
-                    document.getElementById('iconPlaceholder').style.display = 'none';
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const size = 512;
+                        canvas.width = size; canvas.height = size;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, size, size);
+                        uploadedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+                        document.getElementById('previewIcon').src = uploadedBase64;
+                        document.getElementById('previewIcon').style.display = 'block';
+                        document.getElementById('iconPlaceholder').style.display = 'none';
+                        document.getElementById('uploadText').innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:1.5rem;"></i>';
+                    };
+                    img.src = e.target.result;
                 };
                 reader.readAsDataURL(file);
             }
         }
 
-        async function monitor() {
-            document.getElementById('statusContainer').style.display = 'block';
-            const polling = setInterval(async () => {
-                const res = await fetch('/api/status');
-                const data = await res.json();
-                const d = langData[currentLang];
-                
-                if (data.status === 'in_progress') {
-                    document.getElementById('currentStatus').innerText = d.p;
-                    document.getElementById('progressBar').style.width = '65%';
-                } else if (data.status === 'completed' && data.conclusion === 'success') {
-                    clearInterval(polling);
-                    document.getElementById('currentStatus').innerText = d.s;
-                    document.getElementById('progressBar').style.width = '100%';
-                    const link = "https://github.com/A78009866/Aite.studio/releases/download/latest-build/app-debug.apk";
-                    document.getElementById('resultArea').innerHTML = `<a href="${link}" class="build-btn" style="background:var(--primary); color:black; text-decoration:none;"><i class="fa-solid fa-download"></i> ${d.dl}</a>`;
-                }
-            }, 5000);
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg; t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 4000);
         }
 
-        document.getElementById('buildForm').addEventListener('submit', async e => {
+        async function startMonitoring() {
+            const t = translations[currentLang];
+            document.getElementById('statusContainer').style.display = 'block';
+            const statusTxt = document.getElementById('currentStatus');
+            const bar = document.getElementById('progressBar');
+            const resultArea = document.getElementById('resultArea');
+
+            if(pollingInterval) clearInterval(pollingInterval);
+
+            pollingInterval = setInterval(async () => {
+                try {
+                    const res = await fetch('/api/status');
+                    const data = await res.json();
+
+                    if(data.status === 'queued') {
+                        statusTxt.innerText = t.status_q; bar.style.width = '20%';
+                    } else if(data.status === 'in_progress' || data.status === 'waiting') {
+                        statusTxt.innerText = t.status_p; bar.style.width = '65%';
+                    } else if(data.status === 'completed') {
+                        clearInterval(pollingInterval);
+                        if(data.conclusion === 'success') {
+                            statusTxt.innerText = t.status_s; bar.style.width = '100%';
+                            const runId = data.html_url.split('/').pop();
+                            // Link to Release (matches Workflow naming)
+                            const directLink = `https://github.com/A78009866/Aite.studio/releases/download/build-${runId}/app-debug.apk`;
+                            resultArea.innerHTML = `
+                                <a href="${directLink}" class="build-btn" style="background:var(--primary); color:black; text-decoration:none;">
+                                    <i class="fa-solid fa-cloud-arrow-down"></i> ${t.download_btn}
+                                </a>`;
+                        } else {
+                            statusTxt.innerText = t.status_f; bar.style.background = '#ff4444';
+                        }
+                    }
+                } catch(e) {}
+            }, 6000);
+        }
+
+        document.getElementById('buildForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            document.getElementById('submitBtn').disabled = true;
-            const res = await fetch('/api/build', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    appName: document.getElementById('appName').value,
-                    appUrl: document.getElementById('appUrl').value,
-                    packageId: document.getElementById('packageName').value,
-                    iconData: uploadedBase64
-                })
-            });
-            if (res.ok) monitor();
+            if(!uploadedBase64) return showToast(currentLang === 'ar' ? 'يرجى رفع أيقونة' : 'Please upload an icon');
+            
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/build', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        appName: document.getElementById('appName').value,
+                        packageName: document.getElementById('packageName').value,
+                        appUrl: document.getElementById('appUrl').value,
+                        iconBase64: uploadedBase64
+                    })
+                });
+                if(res.ok) startMonitoring();
+                else { showToast('Error triggering build'); btn.disabled = false; }
+            } catch(err) { showToast('Connection Error'); btn.disabled = false; }
         });
     </script>
 </body>
