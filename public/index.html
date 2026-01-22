@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aite.studio | صانع التطبيقات</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-dark: #0a0a0a;
+            --bg-card: #141414;
+            --primary: #00E676; /* النقطة الخضراء */
+            --text-main: #ffffff;
+            --text-muted: #888888;
+            --border: #333333;
+            --font-ar: 'Cairo', sans-serif;
+            --font-en: 'Outfit', sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+
+        body {
+            font-family: var(--font-ar); /* الافتراضي عربي */
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            transition: 0.3s;
+        }
+
+        /* Navbar */
+        .navbar {
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between; /* لتوزيع الشعار وزر اللغة */
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .brand {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            font-family: var(--font-en); /* الشعار يبقى بالإنجليزية دائماً */
+        }
+        .brand .dot { color: var(--primary); }
+
+        .lang-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .lang-btn:hover { border-color: var(--text-main); color: var(--text-main); }
+
+        /* Layout */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 3rem 2rem;
+            gap: 4rem;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* Left Side: Form */
+        .config-panel {
+            flex: 1;
+            min-width: 350px;
+            max-width: 500px;
+        }
+
+        h2 { font-size: 2rem; margin-bottom: 0.5rem; line-height: 1.4; }
+        .subtitle { color: var(--text-muted); margin-bottom: 2.5rem; font-weight: 400; line-height: 1.6; }
+
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem; font-weight: 600; }
+        
+        .input-field {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 16px;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            transition: 0.3s;
+            font-family: inherit;
+        }
+        .input-field:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.1); }
+
+        /* RTL Specific fixes for inputs */
+        html[dir="rtl"] .input-field { text-align: right; }
+        html[dir="ltr"] .input-field { text-align: left; }
+
+        /* Upload Box */
+        .upload-box {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+            position: relative;
+            background: var(--bg-card);
+        }
+        .upload-box:hover { border-color: var(--primary); background: #1a1a1a; }
+        
+        .upload-content i { font-size: 2rem; color: var(--text-muted); margin-bottom: 10px; }
+        .upload-content p { color: var(--text-muted); font-size: 0.9rem; }
+        .upload-box input { display: none; }
+
+        /* Button */
+        .build-btn {
+            width: 100%;
+            background: var(--text-main);
+            color: var(--bg-dark);
+            padding: 18px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            border: none;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: 0.3s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .build-btn:hover { background: var(--primary); transform: translateY(-2px); }
+        .build-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Right Side: Preview */
+        .preview-panel {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            min-width: 300px;
+        }
+
+        .phone-frame {
+            width: 320px;
+            height: 650px;
+            background: black;
+            border-radius: 40px;
+            border: 10px solid #222;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+        }
+
+        /* Screen Simulation */
+        .screen {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .app-icon-display {
+            width: 90px;
+            height: 90px;
+            border-radius: 18px;
+            background: #fff;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            object-fit: cover;
+            margin-bottom: 20px;
+            transition: 0.3s;
+        }
+
+        .app-name-display {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #333;
+            text-align: center;
+            padding: 0 1rem;
+            font-family: var(--font-ar); /* معاينة الهاتف */
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: 0.3s;
+            pointer-events: none;
+            z-index: 1000;
+            font-family: var(--font-ar);
+        }
+        .toast.show { opacity: 1; bottom: 40px; }
+
+        footer { text-align: center; padding: 2rem; color: #444; font-size: 0.8rem; }
+
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="brand">Aite<span class="dot">.</span>studio</div>
+        <button class="lang-btn" id="langToggle">
+            <i class="fa-solid fa-globe"></i> <span id="langText">English</span>
+        </button>
+    </nav>
+
+    <div class="main-container">
+        
+        <div class="config-panel">
+            <h2 data-i18n="title">أنشئ تطبيقك الخاص</h2>
+            <p class="subtitle" data-i18n="subtitle">حول موقعك الإلكتروني إلى تطبيق أندرويد احترافي في ثوانٍ.</p>
+            
+            <form id="buildForm">
+                <div class="form-group">
+                    <label data-i18n="appNameLabel">اسم التطبيق</label>
+                    <input type="text" class="input-field" id="appName" placeholder="مثال: متجري الرائع" oninput="updatePreview()">
+                </div>
+
+                <div class="form-group">
+                    <label data-i18n="appUrlLabel">رابط الموقع</label>
+                    <input type="url" class="input-field" id="appUrl" placeholder="https://www.your-site.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label data-i18n="packageLabel">معرف الحزمة (Package ID)</label>
+                    <input type="text" class="input-field" id="packageName" placeholder="com.aite.myapp" required>
+                </div>
+
+                <div class="form-group">
+                    <label data-i18n="iconLabel">أيقونة التطبيق</label>
+                    <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+                        <div class="upload-content" id="uploadText">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <p data-i18n="uploadText">اضغط لرفع الصورة أو اسحب الملف هنا</p>
+                        </div>
+                        <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)">
+                    </div>
+                </div>
+
+                <button type="submit" class="build-btn">
+                    <span data-i18n="btnBuild">إنشاء ملف APK</span> 
+                    <i class="fa-solid fa-bolt"></i>
+                </button>
+            </form>
+        </div>
+
+        <div class="preview-panel">
+            <div class="phone-frame">
+                <div style="position: absolute; top:10px; left:20px; font-size:10px; color:#333; z-index:2;">12:00</div>
+                <div style="position: absolute; top:10px; right:20px; width:40px; height:10px; z-index:2; display:flex; gap:3px;">
+                     <div style="flex:1; background:#333; border-radius:1px;"></div>
+                     <div style="flex:1; background:#333; border-radius:1px;"></div>
+                     <div style="flex:1; background:#333; border-radius:1px;"></div>
+                </div>
+
+                <div class="screen">
+                    <img src="https://placehold.co/100x100/EEE/31343C?text=Icon" id="previewIcon" class="app-icon-display" alt="App Icon">
+                    <div id="previewName" class="app-name-display">اسم التطبيق</div>
+                    
+                    <div style="margin-top:30px; width:30px; height:30px; border:3px solid #ddd; border-top-color:var(--primary); border-radius:50%; animation: spin 1s linear infinite;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2026 Aite Studio. All rights reserved.
+    </footer>
+
+    <div id="toast" class="toast">تمت العملية</div>
+
+    <script>
+        // --- Translation Data ---
+        const translations = {
+            ar: {
+                dir: "rtl",
+                font: "'Cairo', sans-serif",
+                toggleBtn: "English",
+                title: "أنشئ تطبيقك الخاص",
+                subtitle: "حول موقعك الإلكتروني إلى تطبيق أندرويد احترافي في ثوانٍ.",
+                appNameLabel: "اسم التطبيق",
+                appNamePlaceholder: "مثال: متجري الرائع",
+                appUrlLabel: "رابط الموقع",
+                packageLabel: "معرف الحزمة (Package ID)",
+                iconLabel: "أيقونة التطبيق",
+                uploadText: "اضغط لرفع الصورة أو اسحب الملف هنا",
+                btnBuild: "إنشاء ملف APK",
+                btnProcessing: "جاري المعالجة...",
+                previewDefaultName: "اسم التطبيق",
+                toastSuccess: "✔ تم الإرسال! جاري بناء التطبيق...",
+                toastNoIcon: "الرجاء رفع أيقونة للتطبيق",
+                toastError: "حدث خطأ في الاتصال"
+            },
+            en: {
+                dir: "ltr",
+                font: "'Outfit', sans-serif",
+                toggleBtn: "العربية",
+                title: "Create Your App",
+                subtitle: "Convert your website into a powerful Android app in seconds.",
+                appNameLabel: "App Name",
+                appNamePlaceholder: "My Awesome App",
+                appUrlLabel: "Website URL",
+                packageLabel: "Package ID",
+                iconLabel: "App Icon",
+                uploadText: "Click to upload or drag image",
+                btnBuild: "Generate APK",
+                btnProcessing: "Processing...",
+                previewDefaultName: "App Name",
+                toastSuccess: "✔ Request Sent! Building APK...",
+                toastNoIcon: "Please upload an app icon",
+                toastError: "Connection Failed"
+            }
+        };
+
+        let currentLang = 'ar';
+        let uploadedBase64 = null;
+
+        // --- Language Switcher Logic ---
+        document.getElementById('langToggle').addEventListener('click', () => {
+            currentLang = currentLang === 'ar' ? 'en' : 'ar';
+            applyLanguage(currentLang);
+        });
+
+        function applyLanguage(lang) {
+            const t = translations[lang];
+            
+            // 1. Set HTML direction & Font
+            document.documentElement.setAttribute('dir', t.dir);
+            document.documentElement.setAttribute('lang', lang);
+            document.body.style.fontFamily = t.font;
+            
+            // 2. Update Toggle Button
+            document.getElementById('langText').innerText = t.toggleBtn;
+
+            // 3. Update Text Content (Elements with data-i18n)
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if(t[key]) el.innerText = t[key];
+            });
+
+            // 4. Update Placeholders
+            document.getElementById('appName').placeholder = t.appNamePlaceholder;
+            
+            // 5. Update Preview Default Text (if empty)
+            if(!document.getElementById('appName').value) {
+                document.getElementById('previewName').innerText = t.previewDefaultName;
+            }
+        }
+
+        // --- Core Logic ---
+        
+        function updatePreview() {
+            const name = document.getElementById('appName').value;
+            const t = translations[currentLang];
+            document.getElementById('previewName').innerText = name || t.previewDefaultName;
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('previewIcon').src = e.target.result;
+                    document.getElementById('uploadText').innerHTML = `<i class="fa-solid fa-check" style="color:var(--primary)"></i><p dir="ltr">${file.name}</p>`;
+                    uploadedBase64 = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Spinner Style
+        const styleSheet = document.createElement("style");
+        styleSheet.innerText = `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
+        document.head.appendChild(styleSheet);
+
+        function showToast(msgKey, isError = false, rawMsg = null) {
+            const toast = document.getElementById('toast');
+            const t = translations[currentLang];
+            
+            // Use translation key or raw message if provided
+            toast.innerText = rawMsg ? rawMsg : t[msgKey];
+            
+            toast.style.background = isError ? '#ff4444' : '#333';
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // Form Submit
+        document.getElementById('buildForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const t = translations[currentLang];
+            const btn = document.querySelector('.build-btn');
+            const btnSpan = btn.querySelector('span'); // text inside button
+            
+            if(!uploadedBase64) {
+                showToast('toastNoIcon', true);
+                return;
+            }
+
+            btn.disabled = true;
+            const originalText = btnSpan.innerText;
+            btnSpan.innerText = t.btnProcessing;
+
+            const data = {
+                appName: document.getElementById('appName').value,
+                packageName: document.getElementById('packageName').value,
+                appUrl: document.getElementById('appUrl').value,
+                iconBase64: uploadedBase64
+            };
+
+            try {
+                const response = await fetch('/api/build', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showToast('toastSuccess');
+                } else {
+                    showToast(null, true, "✖ " + result.error);
+                }
+            } catch (err) {
+                showToast('toastError', true);
+            }
+
+            btn.disabled = false;
+            btnSpan.innerText = originalText;
+        });
+    </script>
+</body>
+</html>
