@@ -3,253 +3,274 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aite.studio | Android App Builder</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <title>Aite.studio | App Builder Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         :root {
-            --bg: #050505;
-            --card: #0f0f0f;
+            --bg-dark: #0a0a0a;
+            --bg-card: #141414;
             --primary: #00E676;
-            --text: #ffffff;
-            --muted: #888;
-            --border: #222;
+            --text-main: #ffffff;
+            --text-muted: #888888;
+            --border: #333333;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
 
         body {
             font-family: 'Cairo', sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
+            background-color: var(--bg-dark);
+            color: var(--text-main);
             min-height: 100vh;
             display: flex; flex-direction: column;
+            overflow-x: hidden;
+            transition: 0.3s;
         }
 
         .navbar {
             padding: 1.5rem 2rem;
             display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--border); max-width: 1400px; margin: 0 auto; width: 100%;
         }
 
         .brand { font-family: 'Outfit', sans-serif; font-size: 1.8rem; font-weight: 700; }
-        .brand span { color: var(--primary); }
+        .brand .dot { color: var(--primary); }
 
-        .container {
-            flex: 1; display: flex; flex-wrap: wrap;
-            max-width: 1200px; margin: 0 auto; width: 100%;
-            padding: 2rem; gap: 3rem; align-items: flex-start;
+        .lang-btn {
+            background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+            padding: 8px 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            font-family: 'Outfit', sans-serif; font-weight: 500; transition: 0.3s;
+        }
+        .lang-btn:hover { border-color: var(--primary); color: white; }
+
+        .main-container {
+            flex: 1; display: flex; flex-wrap: wrap; max-width: 1400px; margin: 0 auto; width: 100%;
+            padding: 3rem 2rem; gap: 4rem; justify-content: center; align-items: flex-start;
         }
 
-        .form-section { flex: 1; min-width: 320px; }
-        .preview-section { flex: 0.8; display: flex; justify-content: center; position: sticky; top: 20px; }
-
-        h2 { font-size: 2rem; margin-bottom: 2rem; }
+        .config-panel { flex: 1; min-width: 350px; max-width: 500px; }
+        h2 { font-size: 2.2rem; margin-bottom: 0.5rem; letter-spacing: -1px; }
+        .subtitle { color: var(--text-muted); margin-bottom: 2.5rem; }
         
-        .input-group { margin-bottom: 1.5rem; }
-        label { display: block; margin-bottom: 0.5rem; color: var(--muted); font-size: 0.9rem; }
-        
+        label { display: block; margin-bottom: 0.6rem; color: var(--text-muted); font-size: 0.9rem; font-weight: 600; }
         .input-field {
-            width: 100%; background: var(--card); border: 1px solid var(--border);
-            padding: 14px; border-radius: 10px; color: white; transition: 0.3s;
+            width: 100%; background: var(--bg-card); border: 1px solid var(--border);
+            padding: 16px; border-radius: 12px; color: white; font-size: 1rem; margin-bottom: 1.5rem; transition: 0.3s;
         }
-        .input-field:focus { border-color: var(--primary); }
+        .input-field:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(0, 230, 118, 0.1); }
 
-        .upload-area {
-            border: 2px dashed var(--border); border-radius: 12px; padding: 2rem;
-            text-align: center; cursor: pointer; background: var(--card); margin-bottom: 2rem;
+        .upload-box {
+            border: 2px dashed var(--border); border-radius: 12px; padding: 1.5rem; text-align: center;
+            cursor: pointer; transition: 0.3s; background: var(--bg-card); margin-bottom: 1.5rem;
         }
-        .upload-area:hover { border-color: var(--primary); }
-
+        
         .build-btn {
-            width: 100%; background: var(--text); color: black; padding: 16px;
-            border-radius: 12px; font-weight: 700; border: none; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 10px;
+            width: 100%; background: var(--text-main); color: var(--bg-dark); padding: 18px;
+            border-radius: 12px; font-weight: 700; font-size: 1.1rem; border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s;
         }
-        .build-btn:hover { background: var(--primary); }
-        .build-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .build-btn:hover { background: var(--primary); transform: translateY(-2px); }
 
         /* Status UI */
-        #statusBox {
-            margin-top: 2rem; padding: 20px; background: #111; border-radius: 12px;
-            border: 1px solid #222; display: none;
-        }
-        .progress-bar { width: 100%; height: 6px; background: #222; border-radius: 10px; margin: 15px 0; overflow: hidden; }
-        .progress-fill { width: 0%; height: 100%; background: var(--primary); transition: 0.5s; }
+        #statusContainer { margin-top: 25px; padding: 25px; background: #111; border-radius: 16px; border: 1px solid #222; display: none; }
+        .progress-track { width: 100%; height: 8px; background: #222; border-radius: 10px; overflow: hidden; margin-top: 15px; }
+        .progress-fill { width: 0%; height: 100%; background: var(--primary); transition: width 0.5s ease; box-shadow: 0 0 10px var(--primary); }
 
-        /* Mockup */
-        .phone {
-            width: 280px; height: 580px; border: 10px solid #222; border-radius: 40px;
-            background: #000; position: relative; overflow: hidden;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        /* Phone Preview */
+        .preview-panel { flex: 1; display: flex; justify-content: center; min-width: 300px; }
+        .phone-frame {
+            width: 310px; height: 630px; background: #000; border-radius: 45px; border: 12px solid #1f1f1f;
+            position: relative; overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,0.7);
         }
-        .phone-screen {
-            height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        
+        .status-bar {
+            position: absolute; top: 0; width: 100%; height: 35px; padding: 0 25px;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 12px; color: white; z-index: 10; font-family: 'Outfit', sans-serif;
         }
-        .mock-icon { width: 80px; height: 80px; border-radius: 18px; background: #222; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #444; }
-        .mock-icon img { width: 100%; height: 100%; border-radius: 18px; object-fit: cover; }
-        .mock-name { font-weight: 700; font-size: 1.2rem; }
+
+        .screen {
+            width: 100%; height: 100%; background: linear-gradient(145deg, #1a1a1a 0%, #000 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .app-icon-display { width: 90px; height: 90px; border-radius: 22px; object-fit: cover; display: none; margin-bottom: 20px; box-shadow: 0 15px 30px rgba(0,0,0,0.5); }
+        .icon-placeholder { width: 90px; height: 90px; border-radius: 22px; background: #222; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; color: #444; font-size: 2.5rem; }
+        .app-name-display { font-size: 1.4rem; font-weight: 600; color: white; text-align: center; }
 
         .toast {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #333; padding: 12px 24px; border-radius: 30px; opacity: 0; transition: 0.3s;
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: #222; color: white; padding: 12px 24px; border-radius: 50px;
+            font-size: 0.9rem; opacity: 0; transition: 0.3s; z-index: 2000;
         }
-        .toast.show { opacity: 1; bottom: 40px; }
+        .toast.show { opacity: 1; bottom: 45px; }
+
+        footer { text-align: center; padding: 3rem; color: #333; font-size: 0.8rem; }
+        
+        /* LTR support for English */
+        body.en { direction: ltr; font-family: 'Outfit', sans-serif; }
+        body.en .navbar, body.en .main-container { direction: ltr; }
     </style>
 </head>
 <body>
 
     <nav class="navbar">
-        <div class="brand">Aite<span>.</span>studio</div>
+        <div class="brand">Aite<span class="dot">.</span>studio</div>
+        <button class="lang-btn" id="langToggle"><i class="fa-solid fa-globe"></i> English</button>
     </nav>
 
-    <div class="container">
-        <div class="form-section">
-            <h2 id="ui-title">ابدأ بناء تطبيقك</h2>
+    <div class="main-container">
+        <div class="config-panel">
+            <h2 id="ui-title">أنشئ تطبيقك الخاص</h2>
+            <p class="subtitle" id="ui-subtitle">حوّل موقعك الإلكتروني إلى تطبيق Android احترافي.</p>
             
             <form id="buildForm">
-                <div class="input-group">
-                    <label>اسم التطبيق</label>
-                    <input type="text" class="input-field" id="appName" placeholder="مثال: متجري الخاص" required oninput="syncPreview()">
-                </div>
+                <label id="label-name">اسم التطبيق</label>
+                <input type="text" class="input-field" id="appName" placeholder="اسم تطبيقك" oninput="updatePreview()" required>
                 
-                <div class="input-group">
-                    <label>رابط الموقع (URL)</label>
-                    <input type="url" class="input-field" id="appUrl" placeholder="https://example.com" required>
-                </div>
-
-                <div class="input-group">
-                    <label>معرف الحزمة (Package ID)</label>
-                    <input type="text" class="input-field" id="packageId" placeholder="com.myname.app" required>
-                </div>
-
-                <div class="upload-area" onclick="document.getElementById('iconInput').click()">
-                    <i class="fa-solid fa-image" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
-                    <span id="upload-label">اختر أيقونة التطبيق</span>
-                    <input type="file" id="iconInput" accept="image/*" hidden onchange="handleIcon(event)">
+                <label id="label-url">رابط الموقع</label>
+                <input type="url" class="input-field" id="appUrl" placeholder="https://example.com" required>
+                
+                <label id="label-package">معرف الحزمة (Package ID)</label>
+                <input type="text" class="input-field" id="packageName" placeholder="com.aite.studio" required>
+                
+                <label id="label-icon">أيقونة التطبيق</label>
+                <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+                    <div id="uploadText"><i class="fa-solid fa-cloud-arrow-up" style="font-size: 1.5rem; margin-bottom: 10px; display: block;"></i> <span id="ui-upload">اضغط لرفع الأيقونة</span></div>
+                    <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)" hidden>
                 </div>
 
                 <button type="submit" class="build-btn" id="submitBtn">
-                    بناء ملف APK <i class="fa-solid fa-bolt"></i>
+                    <span id="ui-btn">بدء عملية البناء</span> <i class="fa-solid fa-bolt"></i>
                 </button>
             </form>
 
-            <div id="statusBox">
-                <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
-                    <span id="statusTxt">جاري إرسال الطلب...</span>
-                    <span id="percentTxt">0%</span>
+            <div id="statusContainer">
+                <div style="display:flex; justify-content:space-between; align-items: center;">
+                    <span style="color:#888; font-size: 0.85rem;" id="ui-status-title">حالة البناء:</span>
+                    <span id="currentStatus" style="color:var(--primary); font-weight: bold;">...</span>
                 </div>
-                <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
-                <div id="downloadArea"></div>
+                <div class="progress-track"><div id="progressBar" class="progress-fill"></div></div>
+                <div id="resultArea" style="margin-top: 15px;"></div>
             </div>
         </div>
 
-        <div class="preview-section">
-            <div class="phone">
-                <div class="phone-screen">
-                    <div id="iconPrevBox" class="mock-icon"><i class="fa-brands fa-android"></i></div>
-                    <div id="namePrev" class="mock-name">App Name</div>
+        <div class="preview-panel">
+            <div class="phone-frame">
+                <div class="status-bar" dir="ltr">
+                    <span id="phoneTime">12:00</span>
+                    <div style="display:flex; gap:5px;">
+                        <i class="fa-solid fa-signal"></i>
+                        <i class="fa-solid fa-wifi"></i>
+                        <i class="fa-solid fa-battery-full"></i>
+                    </div>
+                </div>
+                <div class="screen">
+                    <div id="iconPlaceholder" class="icon-placeholder"><i class="fa-brands fa-android"></i></div>
+                    <img id="previewIcon" class="app-icon-display">
+                    <div id="previewName" class="app-name-display">App Name</div>
                 </div>
             </div>
         </div>
     </div>
 
+    <footer>&copy; 2026 AITE STUDIO PRO</footer>
     <div id="toast" class="toast"></div>
 
     <script>
-        let iconBase64 = null;
-        let polling = null;
+        const langData = {
+            ar: {
+                title: "أنشئ تطبيقك الخاص", subtitle: "حوّل موقعك الإلكتروني إلى تطبيق Android احترافي.",
+                name: "اسم التطبيق", url: "رابط الموقع", package: "معرف الحزمة", icon: "أيقونة التطبيق",
+                upload: "اضغط لرفع الأيقونة", btn: "بدء عملية البناء", status: "حالة البناء:",
+                p: "جاري البناء...", s: "اكتمل بنجاح!", dl: "تحميل التطبيق الآن"
+            },
+            en: {
+                title: "Create Your App", subtitle: "Convert your website into a pro Android App.",
+                name: "App Name", url: "Website URL", package: "Package ID", icon: "App Icon",
+                upload: "Click to upload icon", btn: "Start Building", status: "Build Status:",
+                p: "Building APK...", s: "Success!", dl: "Download APK Now"
+            }
+        };
 
-        function syncPreview() {
-            document.getElementById('namePrev').innerText = document.getElementById('appName').value || 'App Name';
+        let currentLang = 'ar';
+        let uploadedBase64 = null;
+
+        document.getElementById('langToggle').addEventListener('click', () => {
+            currentLang = currentLang === 'ar' ? 'en' : 'ar';
+            document.body.classList.toggle('en');
+            const d = langData[currentLang];
+            document.getElementById('ui-title').innerText = d.title;
+            document.getElementById('ui-subtitle').innerText = d.subtitle;
+            document.getElementById('label-name').innerText = d.name;
+            document.getElementById('label-url').innerText = d.url;
+            document.getElementById('label-package').innerText = d.package;
+            document.getElementById('label-icon').innerText = d.icon;
+            document.getElementById('ui-upload').innerText = d.upload;
+            document.getElementById('ui-btn').innerText = d.btn;
+            document.getElementById('ui-status-title').innerText = d.status;
+            document.getElementById('langToggle').innerHTML = `<i class="fa-solid fa-globe"></i> ${currentLang === 'ar' ? 'English' : 'العربية'}`;
+        });
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('phoneTime').innerText = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        function updatePreview() {
+            document.getElementById('previewName').innerText = document.getElementById('appName').value || 'App Name';
         }
 
-        function handleIcon(e) {
-            const file = e.target.files[0];
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(event) {
-                    const img = new Image();
-                    img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = 512; canvas.height = 512;
-                        canvas.getContext('2d').drawImage(img, 0, 0, 512, 512);
-                        iconBase64 = canvas.toDataURL('image/png');
-                        document.getElementById('iconPrevBox').innerHTML = `<img src="${iconBase64}">`;
-                        document.getElementById('upload-label').innerText = "تم اختيار الأيقونة ✅";
-                    };
-                    img.src = event.target.result;
+                reader.onload = e => {
+                    uploadedBase64 = e.target.result;
+                    document.getElementById('previewIcon').src = uploadedBase64;
+                    document.getElementById('previewIcon').style.display = 'block';
+                    document.getElementById('iconPlaceholder').style.display = 'none';
                 };
                 reader.readAsDataURL(file);
             }
         }
 
-        function showToast(m) {
-            const t = document.getElementById('toast');
-            t.innerText = m; t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 3000);
-        }
-
-        async function monitorBuild() {
-            const box = document.getElementById('statusBox');
-            const txt = document.getElementById('statusTxt');
-            const fill = document.getElementById('progressFill');
-            const pTxt = document.getElementById('percentTxt');
-            const dlArea = document.getElementById('downloadArea');
-
-            box.style.display = 'block';
-            
-            polling = setInterval(async () => {
-                try {
-                    const res = await fetch('/api/status');
-                    const data = await res.json();
-
-                    if (data.status === 'in_progress') {
-                        txt.innerText = "جاري البناء (3-5 دقائق)...";
-                        fill.style.width = '60%'; pTxt.innerText = "60%";
-                    } 
-                    else if (data.status === 'completed') {
-                        clearInterval(polling);
-                        if (data.conclusion === 'success') {
-                            txt.innerText = "اكتمل البناء بنجاح! 🎉";
-                            fill.style.width = '100%'; pTxt.innerText = "100%";
-                            fill.style.background = "#00E676";
-                            
-                            // الرابط المباشر لأحدث بناء
-                            const link = "https://github.com/A78009866/Aite.studio/releases/download/latest-build/app-debug.apk";
-                            dlArea.innerHTML = `<a href="${link}" class="build-btn" style="margin-top:15px; background:#00E676; text-decoration:none;">تحميل APK الآن</a>`;
-                            showToast("تم البناء! يمكنك التحميل الآن.");
-                        } else {
-                            txt.innerText = "فشل البناء ❌";
-                            fill.style.background = "#ff4444";
-                        }
-                    }
-                } catch (e) { console.error(e); }
+        async function monitor() {
+            document.getElementById('statusContainer').style.display = 'block';
+            const polling = setInterval(async () => {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                const d = langData[currentLang];
+                
+                if (data.status === 'in_progress') {
+                    document.getElementById('currentStatus').innerText = d.p;
+                    document.getElementById('progressBar').style.width = '65%';
+                } else if (data.status === 'completed' && data.conclusion === 'success') {
+                    clearInterval(polling);
+                    document.getElementById('currentStatus').innerText = d.s;
+                    document.getElementById('progressBar').style.width = '100%';
+                    const link = "https://github.com/A78009866/Aite.studio/releases/download/latest-build/app-debug.apk";
+                    document.getElementById('resultArea').innerHTML = `<a href="${link}" class="build-btn" style="background:var(--primary); color:black; text-decoration:none;"><i class="fa-solid fa-download"></i> ${d.dl}</a>`;
+                }
             }, 5000);
         }
 
-        document.getElementById('buildForm').addEventListener('submit', async (e) => {
+        document.getElementById('buildForm').addEventListener('submit', async e => {
             e.preventDefault();
-            if (!iconBase64) return showToast("يرجى اختيار أيقونة أولاً");
-            
             document.getElementById('submitBtn').disabled = true;
-            
-            try {
-                const res = await fetch('/api/build', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        appName: document.getElementById('appName').value,
-                        appUrl: document.getElementById('appUrl').value,
-                        packageId: document.getElementById('packageId').value,
-                        iconData: iconBase64
-                    })
-                });
-
-                if (res.ok) monitorBuild();
-                else showToast("فشل في بدء البناء");
-            } catch (err) { showToast("خطأ في الاتصال بالسيرفر"); }
+            const res = await fetch('/api/build', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    appName: document.getElementById('appName').value,
+                    appUrl: document.getElementById('appUrl').value,
+                    packageId: document.getElementById('packageName').value,
+                    iconData: uploadedBase64
+                })
+            });
+            if (res.ok) monitor();
         });
     </script>
 </body>
