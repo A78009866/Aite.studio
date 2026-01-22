@@ -4,16 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aite.studio | صانع التطبيقات</title>
-    
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         :root {
             --bg-dark: #0a0a0a;
             --bg-card: #141414;
-            --primary: #00E676; /* النقطة الخضراء */
+            --primary: #00E676;
             --text-main: #ffffff;
             --text-muted: #888888;
             --border: #333333;
@@ -24,7 +22,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
 
         body {
-            font-family: var(--font-ar); /* الافتراضي عربي */
+            font-family: var(--font-ar);
             background-color: var(--bg-dark);
             color: var(--text-main);
             min-height: 100vh;
@@ -34,11 +32,10 @@
             transition: 0.3s;
         }
 
-        /* Navbar */
         .navbar {
             padding: 1.5rem 2rem;
             display: flex;
-            justify-content: space-between; /* لتوزيع الشعار وزر اللغة */
+            justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--border);
             max-width: 1400px;
@@ -46,184 +43,75 @@
             width: 100%;
         }
 
-        .brand {
-            font-size: 1.8rem;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            font-family: var(--font-en); /* الشعار يبقى بالإنجليزية دائماً */
-        }
+        .brand { font-family: var(--font-en); font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px; }
         .brand .dot { color: var(--primary); }
 
         .lang-btn {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-muted);
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-family: inherit;
-            transition: 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+            padding: 8px 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: inherit;
         }
-        .lang-btn:hover { border-color: var(--text-main); color: var(--text-main); }
 
-        /* Layout */
         .main-container {
-            flex: 1;
-            display: flex;
-            flex-wrap: wrap;
-            max-width: 1400px;
-            margin: 0 auto;
-            width: 100%;
-            padding: 3rem 2rem;
-            gap: 4rem;
-            justify-content: center;
-            align-items: flex-start;
+            flex: 1; display: flex; flex-wrap: wrap; max-width: 1400px; margin: 0 auto; width: 100%;
+            padding: 3rem 2rem; gap: 4rem; justify-content: center; align-items: flex-start;
         }
 
-        /* Left Side: Form */
-        .config-panel {
-            flex: 1;
-            min-width: 350px;
-            max-width: 500px;
-        }
+        .config-panel { flex: 1; min-width: 350px; max-width: 500px; }
 
-        h2 { font-size: 2rem; margin-bottom: 0.5rem; line-height: 1.4; }
-        .subtitle { color: var(--text-muted); margin-bottom: 2.5rem; font-weight: 400; line-height: 1.6; }
-
+        h2 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .subtitle { color: var(--text-muted); margin-bottom: 2.5rem; }
         .form-group { margin-bottom: 1.5rem; }
         label { display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem; font-weight: 600; }
         
         .input-field {
-            width: 100%;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            padding: 16px;
-            border-radius: 12px;
-            color: white;
-            font-size: 1rem;
-            transition: 0.3s;
-            font-family: inherit;
+            width: 100%; background: var(--bg-card); border: 1px solid var(--border);
+            padding: 16px; border-radius: 12px; color: white; font-size: 1rem; font-family: inherit;
         }
-        .input-field:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.1); }
-
-        /* RTL Specific fixes for inputs */
+        .input-field:focus { border-color: var(--primary); }
         html[dir="rtl"] .input-field { text-align: right; }
-        html[dir="ltr"] .input-field { text-align: left; }
 
-        /* Upload Box */
         .upload-box {
-            border: 2px dashed var(--border);
-            border-radius: 12px;
-            padding: 2rem;
-            text-align: center;
-            cursor: pointer;
-            transition: 0.3s;
-            position: relative;
-            background: var(--bg-card);
+            border: 2px dashed var(--border); border-radius: 12px; padding: 2rem; text-align: center;
+            cursor: pointer; transition: 0.3s; background: var(--bg-card);
         }
         .upload-box:hover { border-color: var(--primary); background: #1a1a1a; }
         
-        .upload-content i { font-size: 2rem; color: var(--text-muted); margin-bottom: 10px; }
-        .upload-content p { color: var(--text-muted); font-size: 0.9rem; }
-        .upload-box input { display: none; }
-
-        /* Button */
         .build-btn {
-            width: 100%;
-            background: var(--text-main);
-            color: var(--bg-dark);
-            padding: 18px;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 1.1rem;
-            border: none;
-            cursor: pointer;
-            margin-top: 1rem;
-            transition: 0.3s;
-            font-family: inherit;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
+            width: 100%; background: var(--text-main); color: var(--bg-dark); padding: 18px;
+            border-radius: 12px; font-weight: 700; font-size: 1.1rem; border: none; cursor: pointer;
+            margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: inherit;
         }
-        .build-btn:hover { background: var(--primary); transform: translateY(-2px); }
+        .build-btn:hover { background: var(--primary); }
         .build-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        /* Right Side: Preview */
-        .preview-panel {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            min-width: 300px;
+        /* Progress Bar Section */
+        #statusContainer {
+            margin-top: 25px; padding: 20px; background: #111; border-radius: 12px; border: 1px solid #333; display: none;
         }
+        .progress-track { width: 100%; height: 8px; background: #333; border-radius: 10px; overflow: hidden; margin-top: 10px; }
+        .progress-fill { width: 0%; height: 100%; background: var(--primary); transition: width 0.5s ease; }
+        .status-header { display: flex; justify-content: space-between; font-size: 0.9rem; }
 
+        .preview-panel { flex: 1; display: flex; justify-content: center; min-width: 300px; }
         .phone-frame {
-            width: 320px;
-            height: 650px;
-            background: black;
-            border-radius: 40px;
-            border: 10px solid #222;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+            width: 320px; height: 650px; background: black; border-radius: 40px; border: 10px solid #222;
+            position: relative; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.5);
         }
-
-        /* Screen Simulation */
         .screen {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
+            width: 100%; height: 100%; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
+        .app-icon-display { width: 90px; height: 90px; border-radius: 18px; background: #fff; margin-bottom: 20px; object-fit: cover; }
+        .app-name-display { font-size: 1.4rem; font-weight: 600; color: #333; font-family: var(--font-ar); }
 
-        .app-icon-display {
-            width: 90px;
-            height: 90px;
-            border-radius: 18px;
-            background: #fff;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            object-fit: cover;
-            margin-bottom: 20px;
-            transition: 0.3s;
-        }
-
-        .app-name-display {
-            font-size: 1.4rem;
-            font-weight: 600;
-            color: #333;
-            text-align: center;
-            padding: 0 1rem;
-            font-family: var(--font-ar); /* معاينة الهاتف */
-        }
-
-        /* Toast */
         .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #333;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 50px;
-            font-size: 0.9rem;
-            opacity: 0;
-            transition: 0.3s;
-            pointer-events: none;
-            z-index: 1000;
-            font-family: var(--font-ar);
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: #333; color: white; padding: 12px 24px; border-radius: 50px;
+            font-size: 0.9rem; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 1000; font-family: var(--font-ar); text-align: center;
         }
         .toast.show { opacity: 1; bottom: 40px; }
 
         footer { text-align: center; padding: 2rem; color: #444; font-size: 0.8rem; }
-
     </style>
 </head>
 <body>
@@ -236,33 +124,29 @@
     </nav>
 
     <div class="main-container">
-        
         <div class="config-panel">
             <h2 data-i18n="title">أنشئ تطبيقك الخاص</h2>
-            <p class="subtitle" data-i18n="subtitle">حول موقعك الإلكتروني إلى تطبيق أندرويد احترافي في ثوانٍ.</p>
+            <p class="subtitle" data-i18n="subtitle">حول موقعك الإلكتروني إلى تطبيق أندرويد احترافي.</p>
             
             <form id="buildForm">
                 <div class="form-group">
                     <label data-i18n="appNameLabel">اسم التطبيق</label>
-                    <input type="text" class="input-field" id="appName" placeholder="مثال: متجري الرائع" oninput="updatePreview()">
+                    <input type="text" class="input-field" id="appName" placeholder="مثال: متجري" oninput="updatePreview()">
                 </div>
-
                 <div class="form-group">
                     <label data-i18n="appUrlLabel">رابط الموقع</label>
                     <input type="url" class="input-field" id="appUrl" placeholder="https://www.your-site.com" required>
                 </div>
-
                 <div class="form-group">
                     <label data-i18n="packageLabel">معرف الحزمة (Package ID)</label>
                     <input type="text" class="input-field" id="packageName" placeholder="com.aite.myapp" required>
                 </div>
-
                 <div class="form-group">
                     <label data-i18n="iconLabel">أيقونة التطبيق</label>
                     <div class="upload-box" onclick="document.getElementById('fileInput').click()">
                         <div class="upload-content" id="uploadText">
                             <i class="fa-solid fa-cloud-arrow-up"></i>
-                            <p data-i18n="uploadText">اضغط لرفع الصورة أو اسحب الملف هنا</p>
+                            <p data-i18n="uploadText">اضغط لرفع الصورة</p>
                         </div>
                         <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)">
                     </div>
@@ -273,80 +157,70 @@
                     <i class="fa-solid fa-bolt"></i>
                 </button>
             </form>
+
+            <div id="statusContainer">
+                <div class="status-header">
+                    <span style="color: #888;" data-i18n="statusTitle">حالة البناء:</span>
+                    <span id="currentStatus" style="color: var(--primary); font-weight: bold;">...</span>
+                </div>
+                <div class="progress-track">
+                    <div id="progressBar" class="progress-fill"></div>
+                </div>
+                <div style="margin-top: 10px; font-size: 0.8rem; color: #666; display: flex; justify-content: space-between;">
+                    <span id="etaText">يستغرق الأمر حوالي 2-4 دقائق</span>
+                    <a id="actionLink" href="#" target="_blank" style="color: white; display: none;">عرض في GitHub <i class="fa-solid fa-external-link-alt"></i></a>
+                </div>
+            </div>
+
         </div>
 
         <div class="preview-panel">
             <div class="phone-frame">
-                <div style="position: absolute; top:10px; left:20px; font-size:10px; color:#333; z-index:2;">12:00</div>
-                <div style="position: absolute; top:10px; right:20px; width:40px; height:10px; z-index:2; display:flex; gap:3px;">
-                     <div style="flex:1; background:#333; border-radius:1px;"></div>
-                     <div style="flex:1; background:#333; border-radius:1px;"></div>
-                     <div style="flex:1; background:#333; border-radius:1px;"></div>
-                </div>
-
                 <div class="screen">
                     <img src="https://placehold.co/100x100/EEE/31343C?text=Icon" id="previewIcon" class="app-icon-display" alt="App Icon">
                     <div id="previewName" class="app-name-display">اسم التطبيق</div>
-                    
-                    <div style="margin-top:30px; width:30px; height:30px; border:3px solid #ddd; border-top-color:var(--primary); border-radius:50%; animation: spin 1s linear infinite;"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <footer>
-        &copy; 2026 Aite Studio. All rights reserved.
-    </footer>
-
-    <div id="toast" class="toast">تمت العملية</div>
+    <footer>&copy; 2026 Aite Studio. All rights reserved.</footer>
+    <div id="toast" class="toast"></div>
 
     <script>
-        // --- Translation Data ---
+        // Translations
         const translations = {
             ar: {
-                dir: "rtl",
-                font: "'Cairo', sans-serif",
-                toggleBtn: "English",
-                title: "أنشئ تطبيقك الخاص",
-                subtitle: "حول موقعك الإلكتروني إلى تطبيق أندرويد احترافي في ثوانٍ.",
-                appNameLabel: "اسم التطبيق",
-                appNamePlaceholder: "مثال: متجري الرائع",
-                appUrlLabel: "رابط الموقع",
-                packageLabel: "معرف الحزمة (Package ID)",
-                iconLabel: "أيقونة التطبيق",
-                uploadText: "اضغط لرفع الصورة أو اسحب الملف هنا",
-                btnBuild: "إنشاء ملف APK",
-                btnProcessing: "جاري المعالجة...",
-                previewDefaultName: "اسم التطبيق",
-                toastSuccess: "✔ تم الإرسال! جاري بناء التطبيق...",
-                toastNoIcon: "الرجاء رفع أيقونة للتطبيق",
-                toastError: "حدث خطأ في الاتصال"
+                dir: "rtl", font: "'Cairo', sans-serif", toggleBtn: "English",
+                title: "أنشئ تطبيقك الخاص", subtitle: "حول موقعك إلى تطبيق أندرويد.",
+                appNameLabel: "اسم التطبيق", appUrlLabel: "رابط الموقع", packageLabel: "معرف الحزمة",
+                iconLabel: "أيقونة التطبيق", uploadText: "اضغط لرفع الصورة",
+                btnBuild: "إنشاء ملف APK", btnProcessing: "جاري الإرسال...",
+                statusTitle: "حالة النظام", 
+                st_queued: "في قائمة الانتظار (جاري التجهيز)...",
+                st_progress: "جاري بناء التطبيق (قد يستغرق 3 دقائق)...",
+                st_success: "✔ تم البناء بنجاح!", st_fail: "✖ فشل البناء",
+                toastNoIcon: "الرجاء رفع أيقونة", toastErr: "خطأ في الاتصال"
             },
             en: {
-                dir: "ltr",
-                font: "'Outfit', sans-serif",
-                toggleBtn: "العربية",
-                title: "Create Your App",
-                subtitle: "Convert your website into a powerful Android app in seconds.",
-                appNameLabel: "App Name",
-                appNamePlaceholder: "My Awesome App",
-                appUrlLabel: "Website URL",
-                packageLabel: "Package ID",
-                iconLabel: "App Icon",
-                uploadText: "Click to upload or drag image",
-                btnBuild: "Generate APK",
-                btnProcessing: "Processing...",
-                previewDefaultName: "App Name",
-                toastSuccess: "✔ Request Sent! Building APK...",
-                toastNoIcon: "Please upload an app icon",
-                toastError: "Connection Failed"
+                dir: "ltr", font: "'Outfit', sans-serif", toggleBtn: "العربية",
+                title: "Create Your App", subtitle: "Convert your website to Android App.",
+                appNameLabel: "App Name", appUrlLabel: "Website URL", packageLabel: "Package ID",
+                iconLabel: "App Icon", uploadText: "Click to upload image",
+                btnBuild: "Generate APK", btnProcessing: "Sending...",
+                statusTitle: "System Status",
+                st_queued: "Queued (Preparing)...",
+                st_progress: "Building App (Takes ~3 mins)...",
+                st_success: "✔ Build Successful!", st_fail: "✖ Build Failed",
+                toastNoIcon: "Please upload an icon", toastErr: "Connection Error"
             }
         };
 
         let currentLang = 'ar';
         let uploadedBase64 = null;
+        let pollingInterval = null;
 
-        // --- Language Switcher Logic ---
+        // Language Switcher
         document.getElementById('langToggle').addEventListener('click', () => {
             currentLang = currentLang === 'ar' ? 'en' : 'ar';
             applyLanguage(currentLang);
@@ -354,36 +228,20 @@
 
         function applyLanguage(lang) {
             const t = translations[lang];
-            
-            // 1. Set HTML direction & Font
             document.documentElement.setAttribute('dir', t.dir);
-            document.documentElement.setAttribute('lang', lang);
             document.body.style.fontFamily = t.font;
-            
-            // 2. Update Toggle Button
             document.getElementById('langText').innerText = t.toggleBtn;
-
-            // 3. Update Text Content (Elements with data-i18n)
+            
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.getAttribute('data-i18n');
                 if(t[key]) el.innerText = t[key];
             });
-
-            // 4. Update Placeholders
-            document.getElementById('appName').placeholder = t.appNamePlaceholder;
-            
-            // 5. Update Preview Default Text (if empty)
-            if(!document.getElementById('appName').value) {
-                document.getElementById('previewName').innerText = t.previewDefaultName;
-            }
+            updatePreview();
         }
 
-        // --- Core Logic ---
-        
         function updatePreview() {
             const name = document.getElementById('appName').value;
-            const t = translations[currentLang];
-            document.getElementById('previewName').innerText = name || t.previewDefaultName;
+            document.getElementById('previewName').innerText = name || (currentLang==='ar'?'اسم التطبيق':'App Name');
         }
 
         function handleFileSelect(event) {
@@ -392,39 +250,79 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     document.getElementById('previewIcon').src = e.target.result;
-                    document.getElementById('uploadText').innerHTML = `<i class="fa-solid fa-check" style="color:var(--primary)"></i><p dir="ltr">${file.name}</p>`;
+                    document.getElementById('uploadText').innerHTML = `<i class="fa-solid fa-check" style="color:#00E676"></i>`;
                     uploadedBase64 = e.target.result;
                 }
                 reader.readAsDataURL(file);
             }
         }
 
-        // Spinner Style
-        const styleSheet = document.createElement("style");
-        styleSheet.innerText = `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
-        document.head.appendChild(styleSheet);
-
-        function showToast(msgKey, isError = false, rawMsg = null) {
+        function showToast(msg, isError = false) {
             const toast = document.getElementById('toast');
-            const t = translations[currentLang];
-            
-            // Use translation key or raw message if provided
-            toast.innerText = rawMsg ? rawMsg : t[msgKey];
-            
+            toast.innerText = msg;
             toast.style.background = isError ? '#ff4444' : '#333';
             toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
+            setTimeout(() => toast.classList.remove('show'), 4000);
         }
 
-        // Form Submit
+        // --- Monitor Build Function ---
+        function startBuildMonitoring() {
+            const statusContainer = document.getElementById('statusContainer');
+            const statusText = document.getElementById('currentStatus');
+            const progressBar = document.getElementById('progressBar');
+            const actionLink = document.getElementById('actionLink');
+            const t = translations[currentLang];
+
+            statusContainer.style.display = 'block';
+            if(pollingInterval) clearInterval(pollingInterval);
+
+            pollingInterval = setInterval(async () => {
+                try {
+                    const res = await fetch('/api/status');
+                    const data = await res.json();
+                    
+                    if(data.html_url) {
+                        actionLink.href = data.html_url;
+                        actionLink.style.display = 'inline';
+                    }
+
+                    if (data.status === 'queued') {
+                        statusText.innerText = t.st_queued;
+                        progressBar.style.width = '20%';
+                        progressBar.style.background = '#FDD835'; // Yellow
+                    } else if (data.status === 'in_progress') {
+                        statusText.innerText = t.st_progress;
+                        progressBar.style.width = '60%';
+                        progressBar.style.background = '#29b6f6'; // Blue
+                    } else if (data.status === 'completed') {
+                        clearInterval(pollingInterval);
+                        if (data.conclusion === 'success') {
+                            statusText.innerText = t.st_success;
+                            statusText.style.color = '#00E676';
+                            progressBar.style.width = '100%';
+                            progressBar.style.background = '#00E676'; // Green
+                        } else {
+                            statusText.innerText = t.st_fail;
+                            statusText.style.color = '#ff4444';
+                            progressBar.style.width = '100%';
+                            progressBar.style.background = '#ff4444'; // Red
+                        }
+                    }
+                } catch (e) {
+                    console.error("Polling error", e);
+                }
+            }, 5000); // Check every 5s
+        }
+
+        // --- Submit Form ---
         document.getElementById('buildForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const t = translations[currentLang];
             const btn = document.querySelector('.build-btn');
-            const btnSpan = btn.querySelector('span'); // text inside button
+            const btnSpan = btn.querySelector('span');
             
             if(!uploadedBase64) {
-                showToast('toastNoIcon', true);
+                showToast(t.toastNoIcon, true);
                 return;
             }
 
@@ -432,29 +330,28 @@
             const originalText = btnSpan.innerText;
             btnSpan.innerText = t.btnProcessing;
 
-            const data = {
-                appName: document.getElementById('appName').value,
-                packageName: document.getElementById('packageName').value,
-                appUrl: document.getElementById('appUrl').value,
-                iconBase64: uploadedBase64
-            };
-
             try {
                 const response = await fetch('/api/build', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({
+                        appName: document.getElementById('appName').value,
+                        packageName: document.getElementById('packageName').value,
+                        appUrl: document.getElementById('appUrl').value,
+                        iconBase64: uploadedBase64
+                    })
                 });
 
                 const result = await response.json();
 
                 if (response.ok) {
-                    showToast('toastSuccess');
+                    // Start Monitoring
+                    startBuildMonitoring();
                 } else {
-                    showToast(null, true, "✖ " + result.error);
+                    showToast("🛑 " + result.error, true);
                 }
             } catch (err) {
-                showToast('toastError', true);
+                showToast(t.toastErr, true);
             }
 
             btn.disabled = false;
