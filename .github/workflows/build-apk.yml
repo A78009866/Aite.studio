@@ -28,7 +28,7 @@ jobs:
           # 2. تحميل المحرك
           curl -L https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           
-          # 3. إعداد الخصائص
+          # 3. إعداد الخصائص لنسخة 8.2
           cat <<EOF > gradle/wrapper/gradle-wrapper.properties
           distributionBase=GRADLE_USER_HOME
           distributionPath=wrapper/dists
@@ -39,7 +39,7 @@ jobs:
           zipStorePath=wrapper/dists
           EOF
 
-          # 4. إنشاء ملف XML
+          # 4. إنشاء ملف XML الضروري للملفات
           cat <<EOF > app/src/main/res/xml/file_paths.xml
           <?xml version="1.0" encoding="utf-8"?>
           <paths>
@@ -47,11 +47,16 @@ jobs:
           </paths>
           EOF
 
-          # 5. حقن بيانات المستخدم وتوحيد إصدار JVM إلى 17 (لحل الخطأ الأخير)
+          # 5. حقن بيانات المستخدم وتوحيد إصدار الجافا (JVM Target)
+          # استبدال اسم التطبيق والحزمة
           sed -i "s/APP_NAME_PLACEHOLDER/${{ github.event.client_payload.app_name }}/g" app/src/main/AndroidManifest.xml
           sed -i "s/APP_PACKAGE_NAME/${{ github.event.client_payload.package_name }}/g" app/build.gradle
+          
+          # توحيد إصدار الجافا إلى 17 ليتوافق مع الكوتلن (حل المشكلة الأخيرة)
           sed -i "s/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g" app/build.gradle
           sed -i "s/jvmTarget = '1.8'/jvmTarget = '17'/g" app/build.gradle
+          
+          # حقن رابط الموقع
           sed -i "s|WEB_URL_PLACEHOLDER|${{ github.event.client_payload.app_url }}|g" app/src/main/java/com/aite/studio/MainActivity.kt
           
           # 6. معالجة الأيقونة
@@ -69,7 +74,7 @@ jobs:
           tag_name: build-${{ github.run_number }}
           name: Build #${{ github.run_number }} - ${{ github.event.client_payload.app_name }}
           files: app/build/outputs/apk/debug/app-debug.apk
-          body: "تم البناء بنجاح بواسطة Aite.studio"
+          body: "تم بناء التطبيق بنجاح عبر Aite.studio"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -79,7 +84,7 @@ jobs:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
-            ✅ مبروك! التطبيق جاهز.
-            📦 الاسم: ${{ github.event.client_payload.app_name }}
-            🔗 رابط مباشر: https://github.com/${{ github.repository }}/releases/download/build-${{ github.run_number }}/app-debug.apk
+            ✅ مبروك! البناء اكتمل بنجاح.
+            📦 اسم التطبيق: ${{ github.event.client_payload.app_name }}
+            🔗 رابط التحميل: https://github.com/${{ github.repository }}/releases/download/build-${{ github.run_number }}/app-debug.apk
           document: app/build/outputs/apk/debug/app-debug.apk
