@@ -18,25 +18,20 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Inject User Data
+      - name: Create Structure & Inject Data
         run: |
-          # استبدال البيانات في الملفات
-          sed -i "s/APP_NAME_PLACEHOLDER/${{ github.event.client_payload.app_name }}/g" app/src/main/AndroidManifest.xml
-          sed -i "s/APP_PACKAGE_NAME/${{ github.event.client_payload.package_name }}/g" app/build.gradle
-          sed -i "s|WEB_URL_PLACEHOLDER|${{ github.event.client_payload.app_url }}|g" app/src/main/java/com/aite/studio/MainActivity.kt
-          
-      - name: Create Resource Directories & Decode Icon
-        run: |
-          # إنشاء المجلدات اللازمة للأيقونات إذا لم تكن موجودة
           mkdir -p app/src/main/res/mipmap-mdpi
           mkdir -p app/src/main/res/mipmap-hdpi
           mkdir -p app/src/main/res/mipmap-xhdpi
           mkdir -p app/src/main/res/mipmap-xxhdpi
           
-          # تحويل الـ Base64 إلى صورة حقيقية ووضعها في المجلد الأساسي
-          echo "${{ github.event.client_payload.icon_data }}" | cut -d',' -f2 | base64 -d > app/src/main/res/mipmap-mdpi/ic_launcher.png
+          # حقن البيانات
+          sed -i "s/APP_NAME_PLACEHOLDER/${{ github.event.client_payload.app_name }}/g" app/src/main/AndroidManifest.xml
+          sed -i "s/APP_PACKAGE_NAME/${{ github.event.client_payload.package_name }}/g" app/build.gradle
+          sed -i "s|WEB_URL_PLACEHOLDER|${{ github.event.client_payload.app_url }}|g" app/src/main/java/com/aite/studio/MainActivity.kt
           
-          # نسخ الصورة لباقي المجلدات لضمان ظهورها على كل الهواتف
+          # معالجة الأيقونة
+          echo "${{ github.event.client_payload.icon_data }}" | cut -d',' -f2 | base64 -d > app/src/main/res/mipmap-mdpi/ic_launcher.png
           cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-hdpi/ic_launcher.png
           cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
           cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
@@ -47,8 +42,13 @@ jobs:
       - name: Build APK
         run: ./gradlew assembleDebug
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload to Telegram
+        uses: appleboy/telegram-action@master
         with:
-          name: ${{ github.event.client_payload.app_name }}
-          path: app/build/outputs/apk/debug/app-debug.apk
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            ✅ تم بناء تطبيق جديد بنجاح!
+            اسم التطبيق: ${{ github.event.client_payload.app_name }}
+            الحزمة: ${{ github.event.client_payload.package_name }}
+          document: app/build/outputs/apk/debug/app-debug.apk
