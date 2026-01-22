@@ -1,5 +1,4 @@
 name: Aite Studio APK Builder
-
 on:
   repository_dispatch:
     types: [build-apk]
@@ -18,37 +17,28 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Create Structure & Inject Data
+      - name: Prepare Gradle & Assets
         run: |
-          mkdir -p app/src/main/res/mipmap-mdpi
-          mkdir -p app/src/main/res/mipmap-hdpi
-          mkdir -p app/src/main/res/mipmap-xhdpi
-          mkdir -p app/src/main/res/mipmap-xxhdpi
+          mkdir -p gradle/wrapper app/src/main/res/mipmap-mdpi
+          curl -L https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           
-          # حقن البيانات
+          # Inject User Data
           sed -i "s/APP_NAME_PLACEHOLDER/${{ github.event.client_payload.app_name }}/g" app/src/main/AndroidManifest.xml
           sed -i "s/APP_PACKAGE_NAME/${{ github.event.client_payload.package_name }}/g" app/build.gradle
           sed -i "s|WEB_URL_PLACEHOLDER|${{ github.event.client_payload.app_url }}|g" app/src/main/java/com/aite/studio/MainActivity.kt
           
-          # معالجة الأيقونة
+          # Icon Processing
           echo "${{ github.event.client_payload.icon_data }}" | cut -d',' -f2 | base64 -d > app/src/main/res/mipmap-mdpi/ic_launcher.png
-          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-hdpi/ic_launcher.png
-          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
-          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
 
       - name: Build APK
-        run: ./gradlew assembleDebug
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Upload to Telegram
         uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
-          message: |
-            ✅ تم بناء تطبيق جديد بنجاح!
-            اسم التطبيق: ${{ github.event.client_payload.app_name }}
-            الحزمة: ${{ github.event.client_payload.package_name }}
+          message: "✅ تم بناء تطبيق: ${{ github.event.client_payload.app_name }}"
           document: app/build/outputs/apk/debug/app-debug.apk
