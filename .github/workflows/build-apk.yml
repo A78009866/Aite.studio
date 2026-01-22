@@ -20,16 +20,26 @@ jobs:
 
       - name: Inject User Data
         run: |
-          # استبدال اسم التطبيق والباكاج والرابط
+          # استبدال البيانات في الملفات
           sed -i "s/APP_NAME_PLACEHOLDER/${{ github.event.client_payload.app_name }}/g" app/src/main/AndroidManifest.xml
           sed -i "s/APP_PACKAGE_NAME/${{ github.event.client_payload.package_name }}/g" app/build.gradle
           sed -i "s|WEB_URL_PLACEHOLDER|${{ github.event.client_payload.app_url }}|g" app/src/main/java/com/aite/studio/MainActivity.kt
           
-      - name: Decode & Set App Icon
+      - name: Create Resource Directories & Decode Icon
         run: |
-          # تحويل الـ Base64 إلى صورة حقيقية
+          # إنشاء المجلدات اللازمة للأيقونات إذا لم تكن موجودة
+          mkdir -p app/src/main/res/mipmap-mdpi
+          mkdir -p app/src/main/res/mipmap-hdpi
+          mkdir -p app/src/main/res/mipmap-xhdpi
+          mkdir -p app/src/main/res/mipmap-xxhdpi
+          
+          # تحويل الـ Base64 إلى صورة حقيقية ووضعها في المجلد الأساسي
           echo "${{ github.event.client_payload.icon_data }}" | cut -d',' -f2 | base64 -d > app/src/main/res/mipmap-mdpi/ic_launcher.png
-          # ملاحظة: سنحتاج لتكرار الصورة لبقية الأحجام أو الاكتفاء بواحد للتبسيط الآن
+          
+          # نسخ الصورة لباقي المجلدات لضمان ظهورها على كل الهواتف
+          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-hdpi/ic_launcher.png
+          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          cp app/src/main/res/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -40,5 +50,5 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.client_payload.app_name }}-v1.apk
+          name: ${{ github.event.client_payload.app_name }}
           path: app/build/outputs/apk/debug/app-debug.apk
