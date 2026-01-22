@@ -1,5 +1,4 @@
 name: Aite Studio APK Builder
-
 on:
   repository_dispatch:
     types: [build-apk]
@@ -20,44 +19,24 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Heavy Prepare & JVM Fix
+      - name: Build System Setup
         run: |
-          # 1. المجلدات
-          mkdir -p gradle/wrapper app/src/main/res/mipmap-mdpi app/src/main/res/xml
+          # إنشاء المجلدات الأساسية
+          mkdir -p gradle/wrapper app/src/main/res/mipmap-mdpi app/src/main/res/xml app/src/main/java/com/aite/studio
           
-          # 2. المحرك
+          # إعداد محرك Gradle 8.2
           curl -L https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
-          
-          # 3. إعداد الخصائص
-          cat <<EOF > gradle/wrapper/gradle-wrapper.properties
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip
-          networkTimeout=10000
-          validateDistributionUrl=true
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          EOF
+          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
 
-          # 4. ملف XML
-          cat <<EOF > app/src/main/res/xml/file_paths.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <paths>
-              <external-path name="external_files" path="." />
-          </paths>
-          EOF
+          # إنشاء ملف صلاحيات الملفات
+          echo '<?xml version="1.0" encoding="utf-8"?><paths><external-path name="external_files" path="." /></paths>' > app/src/main/res/xml/file_paths.xml
 
-          # 5. إعادة بناء ملف build.gradle لضمان توافق Java 17 (حل الخطأ المتكرر)
+          # بناء ملف build.gradle (توحيد JVM 17)
           cat <<EOF > app/build.gradle
-          plugins {
-              id 'com.android.application'
-              id 'org.jetbrains.kotlin.android'
-          }
-
+          plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android' }
           android {
-              namespace '${{ github.event.client_payload.package_name }}'
+              namespace 'com.aite.studio'
               compileSdk 34
-
               defaultConfig {
                   applicationId "${{ github.event.client_payload.package_name }}"
                   minSdk 24
@@ -65,51 +44,61 @@ jobs:
                   versionCode 1
                   versionName "1.0"
               }
-
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                  }
-              }
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-              }
-              kotlinOptions {
-                  jvmTarget = '17'
-              }
+              compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+              kotlinOptions { jvmTarget = '17' }
           }
-
           dependencies {
               implementation 'androidx.core:core-ktx:1.12.0'
               implementation 'androidx.appcompat:appcompat:1.6.1'
               implementation 'com.google.android.material:material:1.11.0'
-              implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
           }
           EOF
 
-          # 6. حقن الاسم والرابط والأيقونة
-          sed -i "s/APP_NAME_PLACEHOLDER/${{ github.event.client_payload.app_name }}/g" app/src/main/AndroidManifest.xml
-          sed -i "s|WEB_URL_PLACEHOLDER|${{ github.event.client_payload.app_url }}|g" app/src/main/java/com/aite/studio/MainActivity.kt
+          # كتابة كود تشغيل التطبيق (MainActivity) ليعمل مع أي رابط
+          cat <<EOF > app/src/main/java/com/aite/studio/MainActivity.kt
+          package com.aite.studio
+          import android.os.Bundle
+          import android.webkit.WebView
+          import android.webkit.WebViewClient
+          import androidx.appcompat.app.AppCompatActivity
+
+          class MainActivity : AppCompatActivity() {
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  val webView = WebView(this)
+                  webView.settings.javaScriptEnabled = true
+                  webView.settings.domStorageEnabled = true
+                  webView.webViewClient = WebViewClient()
+                  webView.loadUrl("${{ github.event.client_payload.app_url }}")
+                  setContentView(webView)
+              }
+              override fun onBackPressed() {
+                  val webView = contentView as? WebView
+                  if (webView?.canGoBack() == true) webView.goBack() else super.onBackPressed()
+              }
+          }
+          EOF
+
+          # معالجة الأيقونة
           echo "${{ github.event.client_payload.icon_data }}" | cut -d',' -f2 | base64 -d > app/src/main/res/mipmap-mdpi/ic_launcher.png
 
       - name: Build APK
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug
+        run: chmod +x gradlew && ./gradlew assembleDebug
 
-      - name: Create Release & Send to Telegram
-        if: success()
+      - name: Create Global Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ github.run_number }}
+          tag_name: latest-build
+          name: "Latest App Build"
           files: app/build/outputs/apk/debug/app-debug.apk
-          token: ${{ secrets.GITHUB_TOKEN }}
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Telegram Notification
         uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
-          message: "✅ تم بنجاح! تطبيق ${{ github.event.client_payload.app_name }} جاهز للتحميل."
+          message: "✅ تم بناء التطبيق: ${{ github.event.client_payload.app_name }}\n📦 الحزمة: ${{ github.event.client_payload.package_name }}"
           document: app/build/outputs/apk/debug/app-debug.apk
