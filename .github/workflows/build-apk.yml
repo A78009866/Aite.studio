@@ -21,17 +21,17 @@ jobs:
 
       - name: Build System Setup
         run: |
-          # إنشاء المجلدات الأساسية
+          # 1. إنشاء المجلدات
           mkdir -p gradle/wrapper app/src/main/res/mipmap-mdpi app/src/main/res/xml app/src/main/java/com/aite/studio
           
-          # إعداد محرك Gradle 8.2
+          # 2. إعداد Gradle Wrapper 8.2
           curl -L https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
 
-          # إنشاء ملف صلاحيات الملفات
+          # 3. إعداد File Provider
           echo '<?xml version="1.0" encoding="utf-8"?><paths><external-path name="external_files" path="." /></paths>' > app/src/main/res/xml/file_paths.xml
 
-          # بناء ملف build.gradle (توحيد JVM 17)
+          # 4. كتابة ملف build.gradle (بدون أخطاء JVM)
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android' }
           android {
@@ -54,7 +54,28 @@ jobs:
           }
           EOF
 
-          # كتابة كود تشغيل التطبيق (MainActivity) ليعمل مع أي رابط
+          # 5. كتابة المانيفست
+          cat <<EOF > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application
+                  android:icon="@mipmap/ic_launcher"
+                  android:label="APP_NAME_PLACEHOLDER"
+                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  <activity android:name="com.aite.studio.MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+          sed -i "s/APP_NAME_PLACEHOLDER/${{ github.event.client_payload.app_name }}/g" app/src/main/AndroidManifest.xml
+
+          # 6. كتابة كود MainActivity (التصحيح هنا)
+          # تم تعريف webView كمتغير للكلاس لحل مشكلة Unresolved reference
           cat <<EOF > app/src/main/java/com/aite/studio/MainActivity.kt
           package com.aite.studio
           import android.os.Bundle
@@ -63,42 +84,42 @@ jobs:
           import androidx.appcompat.app.AppCompatActivity
 
           class MainActivity : AppCompatActivity() {
+              private lateinit var webView: WebView
+
               override fun onCreate(savedInstanceState: Bundle?) {
                   super.onCreate(savedInstanceState)
-                  val webView = WebView(this)
+                  webView = WebView(this)
                   webView.settings.javaScriptEnabled = true
                   webView.settings.domStorageEnabled = true
                   webView.webViewClient = WebViewClient()
                   webView.loadUrl("${{ github.event.client_payload.app_url }}")
                   setContentView(webView)
               }
+
+              @Deprecated("Deprecated in Java")
               override fun onBackPressed() {
-                  val webView = contentView as? WebView
-                  if (webView?.canGoBack() == true) webView.goBack() else super.onBackPressed()
+                  if (webView.canGoBack()) {
+                      webView.goBack()
+                  } else {
+                      super.onBackPressed()
+                  }
               }
           }
           EOF
 
-          # معالجة الأيقونة
-          echo "${{ github.event.client_payload.icon_data }}" | cut -d',' -f2 | base64 -d > app/src/main/res/mipmap-mdpi/ic_launcher.png
+          # 7. معالجة الأيقونة
+          echo "${{ github.event.client_payload.icon_base64 }}" | cut -d',' -f2 | base64 -d > app/src/main/res/mipmap-mdpi/ic_launcher.png
 
       - name: Build APK
         run: chmod +x gradlew && ./gradlew assembleDebug
 
-      - name: Create Global Release
+      - name: Create Release
+        id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: latest-build
-          name: "Latest App Build"
+          tag_name: build-${{ github.run_number }}
+          name: Build #${{ github.run_number }}
           files: app/build/outputs/apk/debug/app-debug.apk
-          make_latest: true
+          body: "تطبيق: ${{ github.event.client_payload.app_name }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Telegram Notification
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_TOKEN }}
-          message: "✅ تم بناء التطبيق: ${{ github.event.client_payload.app_name }}\n📦 الحزمة: ${{ github.event.client_payload.package_name }}"
-          document: app/build/outputs/apk/debug/app-debug.apk
