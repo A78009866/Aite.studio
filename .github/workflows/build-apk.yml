@@ -1,0 +1,44 @@
+name: Aite Studio APK Builder
+
+on:
+  repository_dispatch:
+    types: [build-apk]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Inject User Data
+        run: |
+          # استبدال اسم التطبيق والباكاج والرابط
+          sed -i "s/APP_NAME_PLACEHOLDER/${{ github.event.client_payload.app_name }}/g" app/src/main/AndroidManifest.xml
+          sed -i "s/APP_PACKAGE_NAME/${{ github.event.client_payload.package_name }}/g" app/build.gradle
+          sed -i "s|WEB_URL_PLACEHOLDER|${{ github.event.client_payload.app_url }}|g" app/src/main/java/com/aite/studio/MainActivity.kt
+          
+      - name: Decode & Set App Icon
+        run: |
+          # تحويل الـ Base64 إلى صورة حقيقية
+          echo "${{ github.event.client_payload.icon_data }}" | cut -d',' -f2 | base64 -d > app/src/main/res/mipmap-mdpi/ic_launcher.png
+          # ملاحظة: سنحتاج لتكرار الصورة لبقية الأحجام أو الاكتفاء بواحد للتبسيط الآن
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.client_payload.app_name }}-v1.apk
+          path: app/build/outputs/apk/debug/app-debug.apk
