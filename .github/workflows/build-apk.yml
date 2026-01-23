@@ -21,24 +21,29 @@ jobs:
 
       - name: Build System Setup
         run: |
-          # 1. إنشاء المجلدات
-          mkdir -p gradle/wrapper app/src/main/res/mipmap-mdpi app/src/main/res/xml app/src/main/java/com/aite/studio
+          # 1. تنظيف اسم الحزمة (تحويل لأحرف صغيرة وإزالة المسافات)
+          RAW_PKG="${{ github.event.client_payload.package_name }}"
+          CLEAN_PKG=$(echo "$RAW_PKG" | tr '[:upper:]' '[:lower:]' | tr -d ' ')
+          echo "Package Name: $CLEAN_PKG"
+
+          # 2. إنشاء المجلدات (drawable للأيقونة هو الأضمن)
+          mkdir -p gradle/wrapper app/src/main/res/drawable app/src/main/res/xml app/src/main/java/com/aite/studio
           
-          # 2. إعداد Gradle Wrapper 8.2
+          # 3. إعداد Gradle
           curl -L https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
 
-          # 3. إعداد File Provider
+          # 4. إعداد File Provider
           echo '<?xml version="1.0" encoding="utf-8"?><paths><external-path name="external_files" path="." /></paths>' > app/src/main/res/xml/file_paths.xml
 
-          # 4. ملف build.gradle (Kotlin + Java 17 Fixed)
+          # 5. ملف build.gradle
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android' }
           android {
               namespace 'com.aite.studio'
               compileSdk 34
               defaultConfig {
-                  applicationId "${{ github.event.client_payload.package_name }}"
+                  applicationId "$CLEAN_PKG"
                   minSdk 24
                   targetSdk 34
                   versionCode 1
@@ -54,15 +59,17 @@ jobs:
           }
           EOF
 
-          # 5. المانيفست
+          # 6. المانيفست (استخدام drawable للأيقونة)
           cat <<EOF > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
               <application
-                  android:icon="@mipmap/ic_launcher"
+                  android:icon="@drawable/app_icon"
                   android:label="APP_NAME_PLACEHOLDER"
-                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+                  android:requestLegacyExternalStorage="true"
+                  android:usesCleartextTraffic="true">
                   <activity android:name="com.aite.studio.MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -74,7 +81,7 @@ jobs:
           EOF
           sed -i "s/APP_NAME_PLACEHOLDER/${{ github.event.client_payload.app_name }}/g" app/src/main/AndroidManifest.xml
 
-          # 6. كود MainActivity (تم إصلاح خطأ contentView هنا)
+          # 7. كود MainActivity (بدون أخطاء)
           cat <<EOF > app/src/main/java/com/aite/studio/MainActivity.kt
           package com.aite.studio
           import android.os.Bundle
@@ -83,7 +90,6 @@ jobs:
           import androidx.appcompat.app.AppCompatActivity
 
           class MainActivity : AppCompatActivity() {
-              // تعريف المتغير هنا ليراه الكلاس كاملاً
               private lateinit var webView: WebView
 
               override fun onCreate(savedInstanceState: Bundle?) {
@@ -107,25 +113,25 @@ jobs:
           }
           EOF
 
-          # 7. الأيقونة
-          echo "${{ github.event.client_payload.icon_base64 }}" | cut -d',' -f2 | base64 -d > app/src/main/res/mipmap-mdpi/ic_launcher.png
+          # 8. معالجة الأيقونة (وضعها في drawable باسم ثابت)
+          # نستخدم sed لإزالة أي headers قد تكون مضافة من المتصفح
+          echo "${{ github.event.client_payload.icon_base64 }}" | sed 's/data:image\/.*;base64,//' | base64 -d > app/src/main/res/drawable/app_icon.png
 
       - name: Build APK
         run: chmod +x gradlew && ./gradlew assembleDebug
 
-      # إنشاء الإصدار في GitHub (لزر الموقع)
+      # إنشاء الإصدار باستخدام run_id (لحل مشكلة الرابط)
       - name: Create GitHub Release
-        id: create_release
         if: success()
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: build-${{ github.run_number }}
-          name: Build #${{ github.run_number }}
+          tag_name: build-${{ github.run_id }}
+          name: App Build ${{ github.run_id }}
           files: app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # إرسال الملف لتليجرام (كما طلبت)
+      # إرسال لتليجرام
       - name: Send to Telegram
         if: success()
         uses: appleboy/telegram-action@master
