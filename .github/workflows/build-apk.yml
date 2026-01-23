@@ -21,22 +21,19 @@ jobs:
 
       - name: Build System Setup
         run: |
-          # 1. تنظيف اسم الحزمة (تحويل لأحرف صغيرة وإزالة المسافات)
+          # 1. تنظيف الحزمة
           RAW_PKG="${{ github.event.client_payload.package_name }}"
           CLEAN_PKG=$(echo "$RAW_PKG" | tr '[:upper:]' '[:lower:]' | tr -d ' ')
-          echo "Package Name: $CLEAN_PKG"
-
-          # 2. إنشاء المجلدات (drawable للأيقونة هو الأضمن)
-          mkdir -p gradle/wrapper app/src/main/res/drawable app/src/main/res/xml app/src/main/java/com/aite/studio
+          
+          # 2. إنشاء جميع مجلدات الأيقونات (لضمان الظهور على كل الأجهزة)
+          mkdir -p app/src/main/res/mipmap-mdpi app/src/main/res/mipmap-hdpi app/src/main/res/mipmap-xhdpi app/src/main/res/mipmap-xxhdpi app/src/main/res/mipmap-xxxhdpi
+          mkdir -p gradle/wrapper app/src/main/res/xml app/src/main/java/com/aite/studio
           
           # 3. إعداد Gradle
           curl -L https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
 
-          # 4. إعداد File Provider
-          echo '<?xml version="1.0" encoding="utf-8"?><paths><external-path name="external_files" path="." /></paths>' > app/src/main/res/xml/file_paths.xml
-
-          # 5. ملف build.gradle
+          # 4. ملف build.gradle
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android' }
           android {
@@ -55,20 +52,19 @@ jobs:
           dependencies {
               implementation 'androidx.core:core-ktx:1.12.0'
               implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.11.0'
           }
           EOF
 
-          # 6. المانيفست (استخدام drawable للأيقونة)
+          # 5. المانيفست (تعديل استدعاء الأيقونة)
           cat <<EOF > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET" />
               <application
-                  android:icon="@drawable/app_icon"
+                  android:icon="@mipmap/ic_launcher"
+                  android:roundIcon="@mipmap/ic_launcher"
                   android:label="APP_NAME_PLACEHOLDER"
                   android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-                  android:requestLegacyExternalStorage="true"
                   android:usesCleartextTraffic="true">
                   <activity android:name="com.aite.studio.MainActivity" android:exported="true">
                       <intent-filter>
@@ -81,17 +77,15 @@ jobs:
           EOF
           sed -i "s/APP_NAME_PLACEHOLDER/${{ github.event.client_payload.app_name }}/g" app/src/main/AndroidManifest.xml
 
-          # 7. كود MainActivity (بدون أخطاء)
+          # 6. كود MainActivity
           cat <<EOF > app/src/main/java/com/aite/studio/MainActivity.kt
           package com.aite.studio
           import android.os.Bundle
           import android.webkit.WebView
           import android.webkit.WebViewClient
           import androidx.appcompat.app.AppCompatActivity
-
           class MainActivity : AppCompatActivity() {
               private lateinit var webView: WebView
-
               override fun onCreate(savedInstanceState: Bundle?) {
                   super.onCreate(savedInstanceState)
                   webView = WebView(this)
@@ -101,26 +95,25 @@ jobs:
                   webView.loadUrl("${{ github.event.client_payload.app_url }}")
                   setContentView(webView)
               }
-
-              @Deprecated("Deprecated in Java")
               override fun onBackPressed() {
-                  if (::webView.isInitialized && webView.canGoBack()) {
-                      webView.goBack()
-                  } else {
-                      super.onBackPressed()
-                  }
+                  if (::webView.isInitialized && webView.canGoBack()) webView.goBack()
+                  else super.onBackPressed()
               }
           }
           EOF
 
-          # 8. معالجة الأيقونة (وضعها في drawable باسم ثابت)
-          # نستخدم sed لإزالة أي headers قد تكون مضافة من المتصفح
-          echo "${{ github.event.client_payload.icon_base64 }}" | sed 's/data:image\/.*;base64,//' | base64 -d > app/src/main/res/drawable/app_icon.png
+          # 7. معالجة الأيقونة - توزيعها على جميع المجلدات
+          IMG_DATA=$(echo "${{ github.event.client_payload.icon_base64 }}" | sed 's/data:image\/.*;base64,//')
+          echo \$IMG_DATA | base64 -d > icon.png
+          cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
+          cp icon.png app/src/main/res/mipmap-hdpi/ic_launcher.png
+          cp icon.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+          cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
       - name: Build APK
         run: chmod +x gradlew && ./gradlew assembleDebug
 
-      # إنشاء الإصدار باستخدام run_id (لحل مشكلة الرابط)
       - name: Create GitHub Release
         if: success()
         uses: softprops/action-gh-release@v1
@@ -131,15 +124,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # إرسال لتليجرام
       - name: Send to Telegram
         if: success()
         uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
-          message: |
-            ✅ تم بناء التطبيق بنجاح!
-            📱 الاسم: ${{ github.event.client_payload.app_name }}
-            📦 الحزمة: ${{ github.event.client_payload.package_name }}
+          message: "✅ تم البناء! الاسم: ${{ github.event.client_payload.app_name }}"
           document: app/build/outputs/apk/debug/app-debug.apk
