@@ -34,7 +34,7 @@ jobs:
           curl -L https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
 
-          # 4. بناء ملف build.gradle
+          # 4. بناء ملف build.gradle (تم إضافة مكتبة Material لإصلاح الخطأ)
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android' }
           android {
@@ -53,10 +53,11 @@ jobs:
           dependencies {
               implementation 'androidx.core:core-ktx:1.12.0'
               implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'com.google.android.material:material:1.11.0'
           }
           EOF
 
-          # 5. بناء المانيفست (الأيقونات العادية والدائرية)
+          # 5. بناء المانيفست (تم استخدام Theme.AppCompat لضمان التوافق)
           cat <<EOF > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -102,15 +103,11 @@ jobs:
           }
           EOF
 
-          # 7. معالجة الأيقونة (طريقة آمنة جداً)
-          # نكتب البيانات في ملف أولاً لتجنب مشاكل الـ shell مع النصوص الطويلة
+          # 7. معالجة الأيقونة
           echo "${{ github.event.client_payload.icon_base64 }}" > icon_b64.txt
-          # إزالة رأس الـ Data URI إذا وجد
           sed -i 's/data:image\/.*;base64,//' icon_b64.txt
-          # فك التشفير مع تجاهل الأحرف غير الصالحة
           base64 -d icon_b64.txt > icon.png || base64 --decode icon_b64.txt > icon.png
           
-          # توزيع الأيقونة على كل المقاسات
           for dir in mipmap-mdpi mipmap-hdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
             cp icon.png app/src/main/res/$dir/ic_launcher.png
           done
