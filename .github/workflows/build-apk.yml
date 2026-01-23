@@ -31,7 +31,7 @@ jobs:
           # 3. إعداد File Provider
           echo '<?xml version="1.0" encoding="utf-8"?><paths><external-path name="external_files" path="." /></paths>' > app/src/main/res/xml/file_paths.xml
 
-          # 4. كتابة ملف build.gradle (بدون أخطاء JVM)
+          # 4. ملف build.gradle (Kotlin + Java 17 Fixed)
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android' }
           android {
@@ -54,7 +54,7 @@ jobs:
           }
           EOF
 
-          # 5. كتابة المانيفست
+          # 5. المانيفست
           cat <<EOF > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -74,8 +74,7 @@ jobs:
           EOF
           sed -i "s/APP_NAME_PLACEHOLDER/${{ github.event.client_payload.app_name }}/g" app/src/main/AndroidManifest.xml
 
-          # 6. كتابة كود MainActivity (التصحيح هنا)
-          # تم تعريف webView كمتغير للكلاس لحل مشكلة Unresolved reference
+          # 6. كود MainActivity (تم إصلاح خطأ contentView هنا)
           cat <<EOF > app/src/main/java/com/aite/studio/MainActivity.kt
           package com.aite.studio
           import android.os.Bundle
@@ -84,6 +83,7 @@ jobs:
           import androidx.appcompat.app.AppCompatActivity
 
           class MainActivity : AppCompatActivity() {
+              // تعريف المتغير هنا ليراه الكلاس كاملاً
               private lateinit var webView: WebView
 
               override fun onCreate(savedInstanceState: Bundle?) {
@@ -98,7 +98,7 @@ jobs:
 
               @Deprecated("Deprecated in Java")
               override fun onBackPressed() {
-                  if (webView.canGoBack()) {
+                  if (::webView.isInitialized && webView.canGoBack()) {
                       webView.goBack()
                   } else {
                       super.onBackPressed()
@@ -107,19 +107,33 @@ jobs:
           }
           EOF
 
-          # 7. معالجة الأيقونة
+          # 7. الأيقونة
           echo "${{ github.event.client_payload.icon_base64 }}" | cut -d',' -f2 | base64 -d > app/src/main/res/mipmap-mdpi/ic_launcher.png
 
       - name: Build APK
         run: chmod +x gradlew && ./gradlew assembleDebug
 
-      - name: Create Release
+      # إنشاء الإصدار في GitHub (لزر الموقع)
+      - name: Create GitHub Release
         id: create_release
+        if: success()
         uses: softprops/action-gh-release@v1
         with:
           tag_name: build-${{ github.run_number }}
           name: Build #${{ github.run_number }}
           files: app/build/outputs/apk/debug/app-debug.apk
-          body: "تطبيق: ${{ github.event.client_payload.app_name }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # إرسال الملف لتليجرام (كما طلبت)
+      - name: Send to Telegram
+        if: success()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            ✅ تم بناء التطبيق بنجاح!
+            📱 الاسم: ${{ github.event.client_payload.app_name }}
+            📦 الحزمة: ${{ github.event.client_payload.package_name }}
+          document: app/build/outputs/apk/debug/app-debug.apk
