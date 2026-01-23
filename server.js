@@ -70,6 +70,7 @@ app.post('/api/build', async (req, res) => {
     }
 });
 
+// تعديل نقطة فحص الحالة لإرجاع run_id
 app.get('/api/status', async (req, res) => {
     try {
         const response = await axios.get(
@@ -81,7 +82,8 @@ app.get('/api/status', async (req, res) => {
             res.json({
                 status: lastRun.status,
                 conclusion: lastRun.conclusion,
-                html_url: lastRun.html_url
+                html_url: lastRun.html_url,
+                run_id: lastRun.id // <--- هذا السطر هو مفتاح الحل لإصلاح الرابط
             });
         } else {
             res.json({ status: 'queued', conclusion: null });
