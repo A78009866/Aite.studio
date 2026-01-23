@@ -6,6 +6,8 @@
     <title>Aite.studio | App Builder</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Cropper.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
 
     <style>
         :root {
@@ -131,6 +133,40 @@
         }
         .lang-option:hover { background: var(--primary); color: black; border-color: var(--primary); }
 
+        /* --- Image Cropper Modal --- */
+        #cropperModal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 4000; display: none;
+            justify-content: center; align-items: center; backdrop-filter: blur(5px);
+        }
+        .cropper-modal-content {
+            background: var(--bg-card); padding: 2rem; border-radius: 16px; border: 1px solid var(--border);
+            width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto;
+        }
+        .cropper-container {
+            width: 100%; height: 400px; margin: 20px 0;
+            background: #111; border-radius: 10px; overflow: hidden;
+        }
+        #imageCropper {
+            max-width: 100%; max-height: 400px; display: block;
+        }
+        .cropper-controls {
+            display: flex; justify-content: center; gap: 15px; margin-top: 20px; flex-wrap: wrap;
+        }
+        .cropper-btn {
+            padding: 12px 24px; border-radius: 8px; border: none; cursor: pointer;
+            font-weight: 600; transition: 0.3s; display: flex; align-items: center; gap: 8px;
+        }
+        .cropper-btn.primary {
+            background: var(--primary); color: black;
+        }
+        .cropper-btn.secondary {
+            background: #222; color: white; border: 1px solid var(--border);
+        }
+        .cropper-btn:hover {
+            transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
         /* --- Main Content --- */
         #appContent { display: none; } /* Hidden until logged in */
         
@@ -185,8 +221,18 @@
         input:checked + .slider { background-color: var(--primary); }
         input:checked + .slider:before { transform: translateX(20px); }
 
-        .upload-box { border: 2px dashed var(--border); border-radius: 12px; padding: 1.5rem; text-align: center; cursor: pointer; transition: 0.3s; background: var(--bg-card); margin-bottom: 1.5rem; }
+        .upload-box { 
+            border: 2px dashed var(--border); border-radius: 12px; padding: 1.5rem; 
+            text-align: center; cursor: pointer; transition: 0.3s; background: var(--bg-card); 
+            margin-bottom: 1.5rem; min-height: 150px; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center;
+        }
         .upload-box:hover { border-color: var(--primary); background: #1a1a1a; }
+        
+        .upload-preview {
+            max-width: 120px; max-height: 120px; border-radius: 20px; 
+            margin-bottom: 10px; object-fit: cover; display: none;
+        }
         
         .build-btn { width: 100%; background: var(--text-main); color: var(--bg-dark); padding: 18px; border-radius: 12px; font-weight: 700; font-size: 1.1rem; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; }
         .build-btn:hover { background: var(--primary); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 230, 118, 0.2); }
@@ -228,11 +274,33 @@
         </div>
     </div>
 
+    <!-- Language Modal -->
     <div id="langModal" class="modal-overlay" onclick="closeLangModal(event)">
         <div class="modal-content">
             <h3 style="margin-bottom: 20px;" data-i18n="selectLang">اختر اللغة / Select Language</h3>
             <button class="lang-option" onclick="setLanguage('ar')">العربية</button>
             <button class="lang-option" onclick="setLanguage('en')">English</button>
+        </div>
+    </div>
+
+    <!-- Image Cropper Modal -->
+    <div id="cropperModal" class="modal-overlay">
+        <div class="cropper-modal-content">
+            <h3 style="margin-bottom: 20px; text-align: center;" data-i18n="cropTitle">اقتصاص الأيقونة</h3>
+            <div class="cropper-container">
+                <img id="imageCropper" src="" alt="Image to crop">
+            </div>
+            <div class="cropper-controls">
+                <button class="cropper-btn secondary" onclick="rotateImage(-90)" title="Rotate Left">
+                    <i class="fas fa-undo"></i>
+                </button>
+                <button class="cropper-btn secondary" onclick="rotateImage(90)" title="Rotate Right">
+                    <i class="fas fa-redo"></i>
+                </button>
+                <button class="cropper-btn secondary" onclick="resetCrop()" data-i18n="cropReset">إعادة تعيين</button>
+                <button class="cropper-btn secondary" onclick="closeCropper()" data-i18n="cropCancel">إلغاء</button>
+                <button class="cropper-btn primary" onclick="applyCrop()" data-i18n="cropApply">تطبيق الاقتصاص</button>
+            </div>
         </div>
     </div>
 
@@ -291,7 +359,12 @@
                         
                         <label data-i18n="iconLabel">أيقونة التطبيق</label>
                         <div class="upload-box" onclick="document.getElementById('fileInput').click()">
-                            <div id="uploadText"><i class="fa-solid fa-cloud-arrow-up" style="font-size: 1.5rem; margin-bottom: 10px; display: block;"></i> <span data-i18n="uploadText">اضغط لرفع الأيقونة</span></div>
+                            <img id="uploadPreview" class="upload-preview" src="" alt="Preview">
+                            <div id="uploadText">
+                                <i class="fa-solid fa-cloud-arrow-up" style="font-size: 1.5rem; margin-bottom: 10px; display: block;"></i> 
+                                <span data-i18n="uploadText">اضغط لرفع الأيقونة</span>
+                                <p style="font-size: 0.8rem; color: #666; margin-top: 5px;">(PNG, JPG, SVG - يفضل 512×512)</p>
+                            </div>
                             <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)" style="display:none">
                         </div>
 
@@ -339,6 +412,9 @@
 
     <div id="toast" class="toast"></div>
 
+    <!-- Cropper.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
@@ -362,6 +438,8 @@
         const provider = new GoogleAuthProvider();
 
         let currentUser = null;
+        let cropper = null;
+        let selectedImageFile = null;
 
         // --- الترجمة ---
         const translations = {
@@ -373,7 +451,9 @@
                 btnBuild: "بدء عملية البناء", statusTitle: "حالة البناء:", status_q: "في الانتظار...", status_p: "جاري البناء (3-5 دقائق)...",
                 status_s: "تم بنجاح!", status_f: "فشلت العملية", download_btn: "تحميل APK", selectLang: "اختر اللغة",
                 footerRights: "© 2026 جميع الحقوق محفوظة لشركة Aite.studio.", createTab: "إنشاء تطبيق", myAppsTab: "تطبيقاتي السابقة",
-                logout: "خروج", toast_no_icon: "يرجى رفع أيقونة", preview_default: "اسم التطبيق"
+                logout: "خروج", toast_no_icon: "يرجى رفع أيقونة", preview_default: "اسم التطبيق",
+                cropTitle: "اقتصاص الأيقونة", cropReset: "إعادة تعيين", cropCancel: "إلغاء", cropApply: "تطبيق الاقتصاص",
+                cropInstructions: "اسحب لاختيار منطقة الأيقونة. يفضل منطقة مربعة."
             },
             en: { 
                 dir: "ltr", title: "Create Your App", subtitle: "Convert your website into a pro Android App.", 
@@ -383,7 +463,9 @@
                 btnBuild: "Start Building", statusTitle: "Build Status:", status_q: "Queued...", status_p: "Building (3-5 mins)...",
                 status_s: "Build Success!", status_f: "Build Failed", download_btn: "Download APK", selectLang: "Select Language",
                 footerRights: "© 2026 Aite.studio. All rights reserved.", createTab: "Create App", myAppsTab: "My Apps",
-                logout: "Logout", toast_no_icon: "Please upload an icon", preview_default: "App Name"
+                logout: "Logout", toast_no_icon: "Please upload an icon", preview_default: "App Name",
+                cropTitle: "Crop Icon", cropReset: "Reset", cropCancel: "Cancel", cropApply: "Apply Crop",
+                cropInstructions: "Drag to select icon area. Square area is preferred."
             }
         };
         let currentLang = 'ar';
@@ -494,36 +576,152 @@
             });
         }
 
-        // --- منطق البناء (Builder Logic) ---
+        // --- منطق معاينة واقتصاص الصورة ---
         let uploadedBase64 = null;
         let pollingInterval = null;
 
+        window.handleFileSelect = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            selectedImageFile = file;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // إظهار المعاينة في مربع الرفع
+                const uploadPreview = document.getElementById('uploadPreview');
+                uploadPreview.src = e.target.result;
+                uploadPreview.style.display = 'block';
+                
+                // تحديث النص
+                document.getElementById('uploadText').innerHTML = `
+                    <i class="fa-solid fa-crop" style="color:var(--primary); font-size:1.5rem;"></i>
+                    <span>${currentLang === 'ar' ? 'انقر لاقتصاص الأيقونة' : 'Click to crop icon'}</span>
+                    <p style="font-size: 0.8rem; color: var(--primary); margin-top: 5px;">
+                        ${currentLang === 'ar' ? 'انقر لضبط وتعديل الأيقونة' : 'Click to adjust and crop icon'}
+                    </p>
+                `;
+                
+                // فتح نافذة الاقتصاص
+                openCropper(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        window.openCropper = function(imageSrc) {
+            const cropperModal = document.getElementById('cropperModal');
+            const imageCropper = document.getElementById('imageCropper');
+            
+            imageCropper.src = imageSrc;
+            cropperModal.style.display = 'flex';
+            
+            // إعادة تهيئة Cropper إذا كان موجوداً
+            if (cropper) {
+                cropper.destroy();
+            }
+            
+            // تهيئة Cropper جديد
+            setTimeout(() => {
+                cropper = new Cropper(imageCropper, {
+                    aspectRatio: 1, // نسبة مربعة 1:1 للأيقونات
+                    viewMode: 1, // يمنع التحرك خارج حدود الصورة
+                    autoCropArea: 0.8, // يبدأ بمنطقة اقتصاص 80% من الصورة
+                    responsive: true,
+                    guides: true,
+                    center: true,
+                    highlight: false,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    toggleDragModeOnDblclick: false,
+                    minCropBoxWidth: 100,
+                    minCropBoxHeight: 100
+                });
+            }, 100);
+        }
+
+        window.closeCropper = function() {
+            document.getElementById('cropperModal').style.display = 'none';
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            
+            // إعادة تعيين معاينة الرفع
+            document.getElementById('uploadPreview').style.display = 'none';
+            document.getElementById('uploadText').innerHTML = `
+                <i class="fa-solid fa-cloud-arrow-up" style="font-size: 1.5rem; margin-bottom: 10px; display: block;"></i> 
+                <span data-i18n="uploadText">اضغط لرفع الأيقونة</span>
+                <p style="font-size: 0.8rem; color: #666; margin-top: 5px;">(PNG, JPG, SVG - يفضل 512×512)</p>
+            `;
+            
+            // إعادة تعيين حقل الملف
+            document.getElementById('fileInput').value = '';
+            selectedImageFile = null;
+        }
+
+        window.applyCrop = function() {
+            if (!cropper) return;
+            
+            // الحصول على الصورة المقتطعة
+            const canvas = cropper.getCroppedCanvas({
+                width: 512,
+                height: 512,
+                fillColor: '#fff',
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high'
+            });
+            
+            if (canvas) {
+                // تحويل Canvas إلى Base64
+                const croppedBase64 = canvas.toDataURL('image/jpeg', 0.9);
+                uploadedBase64 = croppedBase64;
+                
+                // تحديث المعاينة في مربع الرفع
+                const uploadPreview = document.getElementById('uploadPreview');
+                uploadPreview.src = croppedBase64;
+                uploadPreview.style.display = 'block';
+                
+                // تحديث المعاينة في الهاتف
+                document.getElementById('previewIcon').src = croppedBase64;
+                document.getElementById('previewIcon').style.display = 'block';
+                document.getElementById('iconPlaceholder').style.display = 'none';
+                
+                // تحديث نص مربع الرفع
+                document.getElementById('uploadText').innerHTML = `
+                    <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:1.5rem;"></i>
+                    <span style="color:var(--primary)">${currentLang === 'ar' ? 'الأيقونة جاهزة!' : 'Icon ready!'}</span>
+                    <p style="font-size: 0.8rem; color: var(--primary); margin-top: 5px;">
+                        ${currentLang === 'ar' ? 'انقر لتغيير الأيقونة' : 'Click to change icon'}
+                    </p>
+                `;
+                
+                showToast(currentLang === 'ar' ? 'تم اقتصاص الأيقونة بنجاح!' : 'Icon cropped successfully!');
+                
+                // إغلاق نافذة الاقتصاص
+                document.getElementById('cropperModal').style.display = 'none';
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+            }
+        }
+
+        window.rotateImage = function(degrees) {
+            if (cropper) {
+                cropper.rotate(degrees);
+            }
+        }
+
+        window.resetCrop = function() {
+            if (cropper) {
+                cropper.reset();
+            }
+        }
+
+        // --- منطق البناء (Builder Logic) ---
         window.updatePreview = function() {
             const val = document.getElementById('appName').value;
             document.getElementById('previewName').innerText = val || translations[currentLang].preview_default;
-        }
-
-        window.handleFileSelect = function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = new Image();
-                    img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = 512; canvas.height = 512;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, 512, 512);
-                        uploadedBase64 = canvas.toDataURL('image/jpeg', 0.8);
-                        document.getElementById('previewIcon').src = uploadedBase64;
-                        document.getElementById('previewIcon').style.display = 'block';
-                        document.getElementById('iconPlaceholder').style.display = 'none';
-                        document.getElementById('uploadText').innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:1.5rem;"></i>';
-                    };
-                    img.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
         }
 
         document.getElementById('buildForm').addEventListener('submit', async (e) => {
@@ -589,7 +787,6 @@
                             statusTxt.innerText = t.status_s; bar.style.width = '100%';
                             
                             // 1. استخدام run_id القادم من السيرفر لبناء رابط صحيح 100%
-                            // تأكد أن A78009866 هو اسم المستخدم الصحيح لـ GitHub
                             const directLink = `https://github.com/A78009866/Aite.studio/releases/download/build-${data.run_id}/app-debug.apk`;
                             
                             resultArea.innerHTML = `
