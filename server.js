@@ -45,7 +45,7 @@ app.post('/api/build', async (req, res) => {
                     app_name: appName,
                     package_name: packageName,
                     app_url: appUrl,
-                    icon_data: iconBase64
+                    icon_base64: iconBase64
                 }
             },
             {
