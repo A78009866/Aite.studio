@@ -42,7 +42,26 @@
         .lang-btn {
             background: transparent; border: 1px solid var(--border); color: var(--text-muted);
             padding: 8px 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            transition: 0.3s;
         }
+        .lang-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        /* Language Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 3000; display: none;
+            justify-content: center; align-items: center; backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: var(--bg-card); padding: 2rem; border-radius: 16px; border: 1px solid var(--border);
+            width: 90%; max-width: 400px; text-align: center;
+        }
+        .lang-option {
+            display: block; width: 100%; padding: 15px; margin: 10px 0;
+            background: #222; border: 1px solid var(--border); border-radius: 10px;
+            color: white; cursor: pointer; transition: 0.3s; font-size: 1.1rem;
+        }
+        .lang-option:hover { background: var(--primary); color: black; border-color: var(--primary); }
 
         .main-container {
             flex: 1; display: flex; flex-wrap: wrap; max-width: 1400px; margin: 0 auto; width: 100%;
@@ -59,6 +78,34 @@
             padding: 16px; border-radius: 12px; color: white; font-size: 1rem; margin-bottom: 1.5rem; transition: 0.3s;
         }
         .input-field:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(0, 230, 118, 0.1); }
+        ::placeholder { color: #444; opacity: 1; }
+
+        /* New Permissions Toggles */
+        .permissions-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 1.5rem;
+        }
+        .toggle-container {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 16px; background: #111; border: 1px solid var(--border);
+            border-radius: 12px; transition: 0.3s;
+        }
+        .toggle-container:hover { border-color: #555; background: #161616; }
+        .toggle-label { font-size: 0.95rem; color: #ccc; font-weight: 500; }
+
+        /* The Switch Control */
+        .switch { position: relative; display: inline-block; width: 46px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #333; transition: .4s; border-radius: 30px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px;
+            background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(20px); }
+        /* End Toggles */
 
         .upload-box {
             border: 2px dashed var(--border); border-radius: 12px; padding: 1.5rem; text-align: center;
@@ -71,8 +118,8 @@
             border-radius: 12px; font-weight: 700; font-size: 1.1rem; border: none; cursor: pointer;
             display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s;
         }
-        .build-btn:hover { background: var(--primary); transform: translateY(-2px); }
-        .build-btn:disabled { opacity: 0.5; cursor: wait; transform: none; }
+        .build-btn:hover { background: var(--primary); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 230, 118, 0.2); }
+        .build-btn:disabled { opacity: 0.5; cursor: wait; transform: none; box-shadow: none; }
 
         /* Status UI */
         #statusContainer {
@@ -108,16 +155,23 @@
         .toast.show { opacity: 1; bottom: 45px; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        footer { text-align: center; padding: 3rem; color: #333; font-size: 0.8rem; letter-spacing: 1px; }
+        footer { text-align: center; padding: 3rem; color: #333; font-size: 0.9rem; letter-spacing: 0.5px; border-top: 1px solid #1a1a1a; margin-top: 2rem; }
     </style>
 </head>
 <body>
 
+    <div id="langModal" class="modal-overlay" onclick="closeLangModal(event)">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 20px;" data-i18n="selectLang">اختر اللغة / Select Language</h3>
+            <button class="lang-option" onclick="setLanguage('ar')">العربية</button>
+            <button class="lang-option" onclick="setLanguage('en')">English</button>
+        </div>
+    </div>
+
     <nav class="navbar">
         <div class="brand">Aite<span class="dot">.</span>studio</div>
-        <button class="lang-btn" id="langToggle"><i class="fa-solid fa-globe"></i> English</button>
+        <button class="lang-btn" onclick="openLangModal()"><i class="fa-solid fa-globe"></i> <span id="currentLangLabel">العربية</span></button>
     </nav>
 
     <div class="main-container">
@@ -127,13 +181,48 @@
             
             <form id="buildForm">
                 <label data-i18n="appNameLabel">اسم التطبيق</label>
-                <input type="text" class="input-field" id="appName" placeholder="اسم تطبيقك" oninput="updatePreview()" required>
+                <input type="text" class="input-field" id="appName" placeholder="اسم تطبيقك" data-i18n-placeholder="appNamePlaceholder" oninput="updatePreview()" required>
                 
                 <label data-i18n="appUrlLabel">رابط الموقع</label>
                 <input type="url" class="input-field" id="appUrl" placeholder="https://example.com" required>
                 
                 <label data-i18n="packageLabel">معرف الحزمة (Package ID)</label>
                 <input type="text" class="input-field" id="packageName" placeholder="com.company.app" required>
+
+                <label data-i18n="permsLabel" style="margin-top: 1.5rem;">أذونات التطبيق (تخصيص)</label>
+                <div class="permissions-grid">
+                    <div class="toggle-container">
+                        <span class="toggle-label" data-i18n="permCam">الكاميرا</span>
+                        <label class="switch">
+                            <input type="checkbox" id="permCamera">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="toggle-container">
+                        <span class="toggle-label" data-i18n="permMic">الميكروفون</span>
+                        <label class="switch">
+                            <input type="checkbox" id="permMic">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-container">
+                        <span class="toggle-label" data-i18n="permLoc">الموقع الجغرافي</span>
+                        <label class="switch">
+                            <input type="checkbox" id="permLoc">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-container">
+                        <span class="toggle-label" data-i18n="permFile">رفع الملفات</span>
+                        <label class="switch">
+                            <input type="checkbox" id="permFile">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
                 
                 <label data-i18n="iconLabel">أيقونة التطبيق</label>
                 <div class="upload-box" onclick="document.getElementById('fileInput').click()">
@@ -175,41 +264,105 @@
         </div>
     </div>
 
-    <footer>&copy; 2026 AITE STUDIO PRO. POWERED BY CLOUD BUILD.</footer>
+    <footer data-i18n="footerRights">
+        &copy; 2026 جميع الحقوق محفوظة لشركة ايت ستيديو.
+    </footer>
     <div id="toast" class="toast"></div>
 
     <script>
         const translations = {
-            ar: { dir: "rtl", title: "أنشئ تطبيقك الخاص", subtitle: "حوّل موقعك الإلكتروني إلى تطبيق Android احترافي.", appNameLabel: "اسم التطبيق", appUrlLabel: "رابط الموقع", packageLabel: "معرف الحزمة", iconLabel: "أيقونة التطبيق", uploadText: "اضغط لرفع الأيقونة", btnBuild: "بدء عملية البناء", status_q: "في قائمة الانتظار...", status_p: "جاري بناء الملف (3-5 دقائق)...", status_s: "اكتمل البناء بنجاح!", status_f: "فشل البناء، حاول مجدداً", download_btn: "تحميل APK المباشر" },
-            en: { dir: "ltr", title: "Create Your App", subtitle: "Convert your website into a pro Android App.", appNameLabel: "App Name", appUrlLabel: "Website URL", packageLabel: "Package ID", iconLabel: "App Icon", uploadText: "Click to upload icon", btnBuild: "Start Building", status_q: "Queued...", status_p: "Building APK (3-5 mins)...", status_s: "Build Successful!", status_f: "Build Failed", download_btn: "Download Direct APK" }
+            ar: { 
+                dir: "rtl", 
+                title: "أنشئ تطبيقك الخاص", 
+                subtitle: "حوّل موقعك الإلكتروني إلى تطبيق Android احترافي.", 
+                appNameLabel: "اسم التطبيق", 
+                appNamePlaceholder: "اسم تطبيقك", // Arabic placeholder
+                appUrlLabel: "رابط الموقع", 
+                packageLabel: "معرف الحزمة", 
+                permsLabel: "أذونات التطبيق (تخصيص)",
+                permCam: "الكاميرا",
+                permMic: "الميكروفون",
+                permLoc: "الموقع الجغرافي",
+                permFile: "رفع الملفات/الوسائط",
+                iconLabel: "أيقونة التطبيق", 
+                uploadText: "اضغط لرفع الأيقونة", 
+                btnBuild: "بدء عملية البناء", 
+                statusTitle: "حالة البناء:",
+                status_q: "في قائمة الانتظار...", 
+                status_p: "جاري بناء الملف (3-5 دقائق)...", 
+                status_s: "اكتمل البناء بنجاح!", 
+                status_f: "فشل البناء، حاول مجدداً", 
+                download_btn: "تحميل APK المباشر",
+                selectLang: "اختر اللغة",
+                footerRights: "&copy; 2026 جميع الحقوق محفوظة لشركة ايت ستيديو.",
+                toast_no_icon: "يرجى رفع أيقونة",
+                preview_default: "اسم التطبيق"
+            },
+            en: { 
+                dir: "ltr", 
+                title: "Create Your App", 
+                subtitle: "Convert your website into a pro Android App.", 
+                appNameLabel: "App Name", 
+                appNamePlaceholder: "Your App Name", // English placeholder fixed
+                appUrlLabel: "Website URL", 
+                packageLabel: "Package ID", 
+                permsLabel: "App Permissions (Custom)",
+                permCam: "Camera",
+                permMic: "Microphone",
+                permLoc: "Location",
+                permFile: "File Upload/Media",
+                iconLabel: "App Icon", 
+                uploadText: "Click to upload icon", 
+                btnBuild: "Start Building", 
+                statusTitle: "Build Status:",
+                status_q: "Queued...", 
+                status_p: "Building APK (3-5 mins)...", 
+                status_s: "Build Successful!", 
+                status_f: "Build Failed", 
+                download_btn: "Download Direct APK",
+                selectLang: "Select Language",
+                footerRights: "&copy; 2026 Aite Studio. All rights reserved.",
+                toast_no_icon: "Please upload an icon",
+                preview_default: "App Name"
+            }
         };
 
         let currentLang = 'ar';
         let uploadedBase64 = null;
         let pollingInterval = null;
 
-        // Clock logic
+        function openLangModal() { document.getElementById('langModal').style.display = 'flex'; }
+        function closeLangModal(e) { if(e.target.id === 'langModal') document.getElementById('langModal').style.display = 'none'; }
+        
+        function setLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+            document.documentElement.dir = t.dir;
+            document.getElementById('currentLangLabel').innerText = lang === 'ar' ? 'العربية' : 'English';
+            
+            // Translate text content
+            document.querySelectorAll('[data-i18n]').forEach(el => el.innerHTML = t[el.getAttribute('data-i18n')]);
+            
+            // Translate placeholders
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                el.placeholder = t[el.getAttribute('data-i18n-placeholder')];
+            });
+
+            updatePreview();
+            document.getElementById('langModal').style.display = 'none';
+        }
+
         function updateClock() {
             const now = new Date();
             document.getElementById('phoneTime').innerText = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
         }
         setInterval(updateClock, 1000); updateClock();
 
-        document.getElementById('langToggle').addEventListener('click', () => {
-            currentLang = currentLang === 'ar' ? 'en' : 'ar';
-            const t = translations[currentLang];
-            document.documentElement.dir = t.dir;
-            document.getElementById('langToggle').innerHTML = currentLang === 'ar' ? '<i class="fa-solid fa-globe"></i> English' : '<i class="fa-solid fa-globe"></i> العربية';
-            document.querySelectorAll('[data-i18n]').forEach(el => el.innerText = t[el.getAttribute('data-i18n')]);
-            updatePreview();
-        });
-
         function updatePreview() {
             const val = document.getElementById('appName').value;
-            document.getElementById('previewName').innerText = val || (currentLang === 'ar' ? 'اسم التطبيق' : 'App Name');
+            document.getElementById('previewName').innerText = val || translations[currentLang].preview_default;
         }
 
-        // Image Compression (Vital for GitHub)
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (file) {
@@ -263,10 +416,9 @@
                         if(data.conclusion === 'success') {
                             statusTxt.innerText = t.status_s; bar.style.width = '100%';
                             const runId = data.html_url.split('/').pop();
-                            // Link to Release (matches Workflow naming)
                             const directLink = `https://github.com/A78009866/Aite.studio/releases/download/build-${runId}/app-debug.apk`;
                             resultArea.innerHTML = `
-                                <a href="${directLink}" class="build-btn" style="background:var(--primary); color:black; text-decoration:none;">
+                                <a href="${directLink}" class="build-btn" style="background:var(--primary); color:black; text-decoration:none; margin-top: 10px;">
                                     <i class="fa-solid fa-cloud-arrow-down"></i> ${t.download_btn}
                                 </a>`;
                         } else {
@@ -279,10 +431,17 @@
 
         document.getElementById('buildForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if(!uploadedBase64) return showToast(currentLang === 'ar' ? 'يرجى رفع أيقونة' : 'Please upload an icon');
+            if(!uploadedBase64) return showToast(translations[currentLang].toast_no_icon);
             
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;
+
+            const perms = {
+                camera: document.getElementById('permCamera').checked,
+                mic: document.getElementById('permMic').checked,
+                location: document.getElementById('permLoc').checked,
+                files: document.getElementById('permFile').checked
+            };
 
             try {
                 const res = await fetch('/api/build', {
@@ -292,7 +451,8 @@
                         appName: document.getElementById('appName').value,
                         packageName: document.getElementById('packageName').value,
                         appUrl: document.getElementById('appUrl').value,
-                        iconBase64: uploadedBase64
+                        iconBase64: uploadedBase64,
+                        permissions: perms
                     })
                 });
                 if(res.ok) startMonitoring();
