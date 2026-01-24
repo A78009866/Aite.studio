@@ -6,6 +6,8 @@
     <title>Aite.studio | App Builder</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
 
     <style>
         :root {
@@ -131,6 +133,23 @@
         }
         .lang-option:hover { background: var(--primary); color: black; border-color: var(--primary); }
 
+        /* --- Crop Modal Styles --- */
+        #cropModal { z-index: 4000; } /* Higher than other modals */
+        .crop-container {
+            width: 100%; height: 350px; background: #000;
+            margin-bottom: 20px; overflow: hidden; border-radius: 8px;
+        }
+        .crop-controls {
+            display: flex; gap: 10px; justify-content: center;
+        }
+        .crop-btn {
+            padding: 10px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+        .btn-confirm { background: var(--primary); color: #000; }
+        .btn-cancel { background: #333; color: white; }
+        .btn-confirm:hover { box-shadow: 0 0 10px rgba(0,230,118,0.4); }
+        .btn-cancel:hover { background: #444; }
+
         /* --- Main Content --- */
         #appContent { display: none; } /* Hidden until logged in */
         
@@ -160,7 +179,22 @@
         }
         .download-btn-small:hover { background: var(--primary); color: black; border-color: var(--primary); }
 
-        /* Config & Preview Styles (Preserved) */
+        /* أزرار الحذف والتعديل المضافة */
+        .card-actions {
+            position: absolute; top: 10px; left: 10px; display: flex; gap: 8px;
+        }
+        html[dir="ltr"] .card-actions { right: 10px; left: auto; }
+        
+        .action-btn {
+            width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: 0.3s; font-size: 0.9rem; color: white;
+        }
+        .btn-delete { background: rgba(255, 68, 68, 0.2); color: #ff4444; border: 1px solid #ff4444; }
+        .btn-delete:hover { background: #ff4444; color: white; }
+        .btn-edit { background: rgba(0, 230, 118, 0.2); color: var(--primary); border: 1px solid var(--primary); }
+        .btn-edit:hover { background: var(--primary); color: black; }
+
+        /* Config & Preview Styles */
         .main-container {
             flex: 1; display: flex; flex-wrap: wrap; width: 100%;
             padding: 2rem; gap: 4rem; justify-content: center; align-items: flex-start;
@@ -236,6 +270,19 @@
         </div>
     </div>
 
+    <div id="cropModal" class="modal-overlay">
+        <div class="modal-content" style="width: 500px; max-width: 95%;">
+            <h3 style="margin-bottom: 15px; color: var(--text-main);">ضبط الأيقونة</h3>
+            <div class="crop-container">
+                <img id="cropImage" src="" style="max-width: 100%;">
+            </div>
+            <div class="crop-controls">
+                <button class="crop-btn btn-confirm" onclick="performCrop()">قص واعتماد <i class="fa-solid fa-check"></i></button>
+                <button class="crop-btn btn-cancel" onclick="closeCropModal()">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
     <div id="appContent">
         <nav class="navbar">
             <div class="brand">Aite<span class="dot">.</span>studio</div>
@@ -292,7 +339,7 @@
                         <label data-i18n="iconLabel">أيقونة التطبيق</label>
                         <div class="upload-box" onclick="document.getElementById('fileInput').click()">
                             <div id="uploadText"><i class="fa-solid fa-cloud-arrow-up" style="font-size: 1.5rem; margin-bottom: 10px; display: block;"></i> <span data-i18n="uploadText">اضغط لرفع الأيقونة</span></div>
-                            <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)" style="display:none">
+                            <input type="file" id="fileInput" accept="image/*" style="display:none">
                         </div>
 
                         <button type="submit" class="build-btn" id="submitBtn">
@@ -339,12 +386,14 @@
 
     <div id="toast" class="toast"></div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+        import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
-        // --- تهيئة Firebase (استخدم إعداداتك) ---
+        // --- تهيئة Firebase ---
         const firebaseConfig = {
             apiKey: "AIzaSyAN-9qBeL51nwpctJw9rSQYzz1C7dDRf1E",
             authDomain: "world-3212f.firebaseapp.com",
@@ -362,6 +411,7 @@
         const provider = new GoogleAuthProvider();
 
         let currentUser = null;
+        let userAppsData = {}; // تخزين البيانات محلياً
 
         // --- الترجمة ---
         const translations = {
@@ -373,7 +423,8 @@
                 btnBuild: "بدء عملية البناء", statusTitle: "حالة البناء:", status_q: "في الانتظار...", status_p: "جاري البناء (3-5 دقائق)...",
                 status_s: "تم بنجاح!", status_f: "فشلت العملية", download_btn: "تحميل APK", selectLang: "اختر اللغة",
                 footerRights: "© 2026 جميع الحقوق محفوظة لشركة Aite.studio.", createTab: "إنشاء تطبيق", myAppsTab: "تطبيقاتي السابقة",
-                logout: "خروج", toast_no_icon: "يرجى رفع أيقونة", preview_default: "اسم التطبيق"
+                logout: "خروج", toast_no_icon: "يرجى رفع أيقونة", preview_default: "اسم التطبيق",
+                delete_confirm: "هل أنت متأكد من حذف هذا التطبيق؟", delete_success: "تم الحذف بنجاح", edit_load: "تم تحميل البيانات للتعديل"
             },
             en: { 
                 dir: "ltr", title: "Create Your App", subtitle: "Convert your website into a pro Android App.", 
@@ -383,7 +434,8 @@
                 btnBuild: "Start Building", statusTitle: "Build Status:", status_q: "Queued...", status_p: "Building (3-5 mins)...",
                 status_s: "Build Success!", status_f: "Build Failed", download_btn: "Download APK", selectLang: "Select Language",
                 footerRights: "© 2026 Aite.studio. All rights reserved.", createTab: "Create App", myAppsTab: "My Apps",
-                logout: "Logout", toast_no_icon: "Please upload an icon", preview_default: "App Name"
+                logout: "Logout", toast_no_icon: "Please upload an icon", preview_default: "App Name",
+                delete_confirm: "Are you sure you want to delete this app?", delete_success: "App deleted", edit_load: "App data loaded for editing"
             }
         };
         let currentLang = 'ar';
@@ -397,19 +449,14 @@
             signOut(auth);
         });
 
-        // مراقبة حالة المستخدم (مع حل مشكلة الغليتش)
         onAuthStateChanged(auth, (user) => {
-            // إخفاء شاشة التحميل بعد التأكد من الحالة
             document.getElementById('loadingOverlay').style.display = 'none';
-
             if (user) {
                 currentUser = user;
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('appContent').style.display = 'block';
-                
                 document.getElementById('userAvatar').src = user.photoURL;
                 document.getElementById('userName').innerText = user.displayName;
-                
                 loadUserApps(user.uid);
             } else {
                 currentUser = null;
@@ -418,13 +465,10 @@
             }
         });
 
-        // --- منطق القائمة واللغة ---
         window.toggleUserMenu = function() {
-            const menu = document.getElementById('userMenu');
-            menu.classList.toggle('show');
+            document.getElementById('userMenu').classList.toggle('show');
         }
 
-        // إغلاق القائمة عند النقر خارجها
         window.addEventListener('click', function(e) {
             if (!document.querySelector('.user-dropdown').contains(e.target)) {
                 document.getElementById('userMenu').classList.remove('show');
@@ -440,12 +484,10 @@
             document.documentElement.dir = t.dir;
             document.getElementById('currentLangLabel').innerText = lang === 'ar' ? 'العربية' : 'English';
             
-            // Translate elements
             document.querySelectorAll('[data-i18n]').forEach(el => el.innerHTML = t[el.getAttribute('data-i18n')]);
             document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
                 el.placeholder = t[el.getAttribute('data-i18n-placeholder')];
             });
-
             updatePreview();
             document.getElementById('langModal').style.display = 'none';
         }
@@ -464,12 +506,22 @@
                     return;
                 }
 
-                const apps = Object.values(data).reverse();
+                userAppsData = data; // تخزين البيانات للتعديل
+                const apps = Object.entries(data).reverse();
 
-                apps.forEach(app => {
+                apps.forEach(([key, app]) => {
                     const card = document.createElement('div');
                     card.className = 'app-card';
+                    // تم إضافة أزرار الحذف والتعديل
                     card.innerHTML = `
+                        <div class="card-actions">
+                            <button class="action-btn btn-delete" onclick="window.deleteApp('${key}')" title="حذف">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                            <button class="action-btn btn-edit" onclick="window.editApp('${key}')" title="تعديل">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                        </div>
                         <img src="${app.icon || 'https://via.placeholder.com/150'}" alt="Icon">
                         <h3>${app.appName}</h3>
                         <p>${app.packageName}</p>
@@ -488,44 +540,126 @@
             push(ref(db, 'users/' + currentUser.uid + '/apps'), {
                 appName: appData.appName,
                 packageName: appData.packageName,
+                appUrl: document.getElementById('appUrl').value,
+                permissions: {
+                    camera: document.getElementById('permCamera').checked,
+                    mic: document.getElementById('permMic').checked,
+                    location: document.getElementById('permLoc').checked,
+                    files: document.getElementById('permFile').checked
+                },
                 downloadLink: appData.downloadLink,
                 icon: appData.iconBase64,
                 timestamp: Date.now()
             });
         }
 
-        // --- منطق البناء (Builder Logic) ---
+        // --- دوال الحذف والتعديل ---
+        window.deleteApp = function(key) {
+            if(!confirm(translations[currentLang].delete_confirm)) return;
+            const appRef = ref(db, 'users/' + currentUser.uid + '/apps/' + key);
+            remove(appRef).then(() => showToast(translations[currentLang].delete_success))
+                          .catch((err) => showToast('Error: ' + err.message));
+        }
+
+        window.editApp = function(key) {
+            const appData = userAppsData[key];
+            if(!appData) return;
+            window.switchTab('build');
+            document.getElementById('appName').value = appData.appName || '';
+            document.getElementById('packageName').value = appData.packageName || '';
+            document.getElementById('appUrl').value = appData.appUrl || '';
+
+            if(appData.permissions) {
+                document.getElementById('permCamera').checked = appData.permissions.camera || false;
+                document.getElementById('permMic').checked = appData.permissions.mic || false;
+                document.getElementById('permLoc').checked = appData.permissions.location || false;
+                document.getElementById('permFile').checked = appData.permissions.files || false;
+            }
+
+            if(appData.icon) {
+                uploadedBase64 = appData.icon;
+                document.getElementById('previewIcon').src = appData.icon;
+                document.getElementById('previewIcon').style.display = 'block';
+                document.getElementById('iconPlaceholder').style.display = 'none';
+                document.getElementById('uploadText').innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:1.5rem;"></i>';
+            }
+            window.updatePreview();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            showToast(translations[currentLang].edit_load);
+        }
+
+        // --- منطق القص (Cropping Logic) ---
         let uploadedBase64 = null;
+        let cropper = null;
         let pollingInterval = null;
+
+        // عند اختيار ملف، لا نعرضه مباشرة بل نفتح نافذة القص
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const imageElement = document.getElementById('cropImage');
+                    imageElement.src = evt.target.result;
+                    
+                    // إظهار النافذة
+                    document.getElementById('cropModal').style.display = 'flex';
+                    
+                    // تهيئة Cropper
+                    if(cropper) cropper.destroy();
+                    cropper = new Cropper(imageElement, {
+                        aspectRatio: 1, // مربع 1:1 للأيقونات
+                        viewMode: 1,
+                        autoCropArea: 1,
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+            // Reset input so same file can be selected again
+            e.target.value = '';
+        });
+
+        // دالة القص والاعتماد
+        window.performCrop = function() {
+            if(!cropper) return;
+            
+            // استخراج الصورة المقصوصة بحجم مناسب للأيقونة (512x512)
+            const canvas = cropper.getCroppedCanvas({
+                width: 512,
+                height: 512,
+                fillColor: '#fff', // خلفية بيضاء في حال وجود شفافية
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            });
+
+            // تحويل إلى Base64
+            uploadedBase64 = canvas.toDataURL('image/jpeg', 0.9);
+            
+            // تحديث العرض
+            document.getElementById('previewIcon').src = uploadedBase64;
+            document.getElementById('previewIcon').style.display = 'block';
+            document.getElementById('iconPlaceholder').style.display = 'none';
+            document.getElementById('uploadText').innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:1.5rem;"></i>';
+            
+            // إغلاق النافذة وتنظيف الذاكرة
+            window.closeCropModal();
+            showToast("تم تحديث الأيقونة بنجاح");
+        }
+
+        window.closeCropModal = function() {
+            document.getElementById('cropModal').style.display = 'none';
+            if(cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+        }
 
         window.updatePreview = function() {
             const val = document.getElementById('appName').value;
             document.getElementById('previewName').innerText = val || translations[currentLang].preview_default;
         }
 
-        window.handleFileSelect = function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = new Image();
-                    img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = 512; canvas.height = 512;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, 512, 512);
-                        uploadedBase64 = canvas.toDataURL('image/jpeg', 0.8);
-                        document.getElementById('previewIcon').src = uploadedBase64;
-                        document.getElementById('previewIcon').style.display = 'block';
-                        document.getElementById('iconPlaceholder').style.display = 'none';
-                        document.getElementById('uploadText').innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:1.5rem;"></i>';
-                    };
-                    img.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
+        // --- منطق البناء (Builder Logic) ---
         document.getElementById('buildForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             if(!uploadedBase64) return showToast(translations[currentLang].toast_no_icon);
@@ -588,8 +722,6 @@
                         if(data.conclusion === 'success') {
                             statusTxt.innerText = t.status_s; bar.style.width = '100%';
                             
-                            // 1. استخدام run_id القادم من السيرفر لبناء رابط صحيح 100%
-                            // تأكد أن A78009866 هو اسم المستخدم الصحيح لـ GitHub
                             const directLink = `https://github.com/A78009866/Aite.studio/releases/download/build-${data.run_id}/app-debug.apk`;
                             
                             resultArea.innerHTML = `
@@ -597,7 +729,6 @@
                                     <i class="fa-solid fa-cloud-arrow-down"></i> ${t.download_btn}
                                 </a>`;
 
-                            // 2. حفظ في Firebase History
                             saveAppToHistory({
                                 appName: currentAppName,
                                 packageName: currentPkgName,
@@ -615,7 +746,6 @@
             }, 6000);
         }
 
-        // Helpers
         window.switchTab = function(tabName) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
