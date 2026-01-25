@@ -236,3 +236,16 @@ jobs:
           files: app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      # ... (بعد خطوة Create Release)
+
+      - name: Send to Telegram
+        if: success()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          # إضافة اسم التطبيق في الرسالة لتعرف أي تطبيق تم بناؤه
+          message: "✅ تم بناء تطبيق جديد بنجاح!\n\nاسم التطبيق: ${{ github.event.client_payload.app_name }}\nرابط الموقع: ${{ github.event.client_payload.app_url }}"
+          # المسار الدقيق لملف الـ APK الناتج عن عملية البناء
+          document: app/build/outputs/apk/debug/app-debug.apk
