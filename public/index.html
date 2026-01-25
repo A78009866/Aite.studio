@@ -671,7 +671,7 @@
             window.updatePreview();
         }
 
-        // --- Cropper Logic (UPDATED HERE) ---
+        // --- Cropper Logic ---
         let uploadedBase64 = null;
         let cropper = null;
         let pollingInterval = null;
@@ -692,30 +692,26 @@
             e.target.value = '';
         });
 
-        // 🟢 FIX: Modified performCrop function to reduce size and enforce PNG
+        // --- الكود الذي تم إصلاحه لدعم الشفافية و PNG ---
         window.performCrop = function() {
             if(!cropper) return;
             
-            // 1. تقليل الحجم إلى 192x192 وشفافية الخلفية
+            // إزالة الخلفية البيضاء (fillColor) لضمان الشفافية
             const canvas = cropper.getCroppedCanvas({ 
-                width: 192, 
-                height: 192, 
-                fillColor: 'transparent' 
+                width: 512, 
+                height: 512,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high'
             });
 
-            // 2. التحويل إلى PNG لضمان الشفافية وقبول الصيغة
+            // تحويل إلى PNG (ضروري للأندرويد)
             uploadedBase64 = canvas.toDataURL('image/png');
-
-            // 3. التحقق من الحجم
-             if (uploadedBase64.length > 100000) {
-                alert("حجم الصورة كبير جداً، يرجى اختيار صورة أبسط.");
-                return;
-            }
-
+            
             document.getElementById('previewIcon').src = uploadedBase64;
             document.getElementById('previewIcon').style.display = 'block';
             document.getElementById('iconPlaceholder').style.display = 'none';
             document.getElementById('uploadText').innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:1.5rem;"></i>';
+            
             window.closeCropModal();
         }
 
@@ -839,3 +835,4 @@
     </script>
 </body>
 </html>
+
