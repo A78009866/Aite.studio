@@ -127,7 +127,7 @@ jobs:
           </paths>
           EOF
 
-          # 7. MainActivity
+          # 7. MainActivity (تم التعديل هنا لحل مشكلة تسجيل الدخول)
           cat <<EOF > app/src/main/java/com/aite/studio/MainActivity.kt
           package com.aite.studio
           import android.Manifest
@@ -172,6 +172,13 @@ jobs:
                   webSettings.allowFileAccess = true
                   webSettings.allowContentAccess = true
                   webSettings.mediaPlaybackRequiresUserGesture = false
+                  
+                  // --- FIX: Google Login Issue ---
+                  // إزالة علامة الويب فيو لخداع جوجل
+                  val newUA = webSettings.userAgentString.replace("; wv", "")
+                  webSettings.userAgentString = newUA
+                  // -------------------------------
+
                   webView.webViewClient = WebViewClient()
                   webView.webChromeClient = object : WebChromeClient() {
                       override fun onPermissionRequest(request: PermissionRequest) { request.grant(request.resources) }
@@ -199,17 +206,13 @@ jobs:
           }
           EOF
 
-      # --- الجزء المعدل الجديد: تحميل الصورة من الرابط ---
+      # --- تحميل الصورة ---
       - name: Download Icon
         run: |
           echo "Downloading icon from: ${{ github.event.client_payload.icon_url }}"
-          
-          # استخدام التوكن للوصول للملف إذا كان المستودع خاصاً
           curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
                -L "${{ github.event.client_payload.icon_url }}" \
                -o icon_raw
-               
-          # التأكد من أن الملف تم تحميله
           if [ ! -s icon_raw ]; then
              echo "Error: Icon file is empty or download failed."
              exit 1
@@ -217,7 +220,6 @@ jobs:
 
       - name: Process and Place Icon
         run: |
-          # تحويل وتوزيع الأيقونات
           convert icon_raw -resize 48x48 app/src/main/res/mipmap-mdpi/ic_launcher.png
           convert icon_raw -resize 72x72 app/src/main/res/mipmap-hdpi/ic_launcher.png
           convert icon_raw -resize 96x96 app/src/main/res/mipmap-xhdpi/ic_launcher.png
@@ -236,8 +238,6 @@ jobs:
           files: app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-      # ... (بعد خطوة Create Release)
 
       - name: Send to Telegram
         if: success()
@@ -245,7 +245,5 @@ jobs:
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
-          # إضافة اسم التطبيق في الرسالة لتعرف أي تطبيق تم بناؤه
           message: "✅ تم بناء تطبيق جديد بنجاح!\n\nاسم التطبيق: ${{ github.event.client_payload.app_name }}\nرابط الموقع: ${{ github.event.client_payload.app_url }}"
-          # المسار الدقيق لملف الـ APK الناتج عن عملية البناء
           document: app/build/outputs/apk/debug/app-debug.apk
