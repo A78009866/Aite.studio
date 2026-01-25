@@ -19,6 +19,10 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      # تثبيت أدوات معالجة الصور الضرورية
+      - name: Install Image Tools
+        run: sudo apt-get update && sudo apt-get install -y imagemagick
+
       - name: Build System Setup
         run: |
           # 1. تنظيف وتجهيز اسم الحزمة
@@ -26,7 +30,7 @@ jobs:
           CLEAN_PKG=$(echo "$RAW_PKG" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9.')
           [ -z "$CLEAN_PKG" ] && CLEAN_PKG="com.aite.app"
 
-          # 2. إنشاء المجلدات اللازمة (بما في ذلك مجلد xml للمسارات)
+          # 2. إنشاء المجلدات
           mkdir -p app/src/main/res/mipmap-mdpi app/src/main/res/mipmap-hdpi app/src/main/res/mipmap-xhdpi app/src/main/res/mipmap-xxhdpi app/src/main/res/mipmap-xxxhdpi
           mkdir -p gradle/wrapper app/src/main/res/xml app/src/main/java/com/aite/studio
           
@@ -34,7 +38,7 @@ jobs:
           curl -L https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
 
-          # 4. بناء ملف build.gradle
+          # 4. ملف build.gradle
           cat <<EOF > app/build.gradle
           plugins { 
               id 'com.android.application'
@@ -64,27 +68,21 @@ jobs:
           }
           EOF
 
-          # 5. بناء المانيفست (ديناميكي بناءً على خيارات المستخدم)
+          # 5. بناء المانيفست
           PERMISSIONS=""
-          
-          # التحقق من الأذونات المطلوبة وإضافتها للنص
           if [ "${{ github.event.client_payload.use_camera }}" == "true" ]; then
             PERMISSIONS+='<uses-permission android:name="android.permission.CAMERA" />\n'
           fi
-          
           if [ "${{ github.event.client_payload.use_mic }}" == "true" ]; then
             PERMISSIONS+='<uses-permission android:name="android.permission.RECORD_AUDIO" />\n<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n'
           fi
-          
           if [ "${{ github.event.client_payload.use_location }}" == "true" ]; then
             PERMISSIONS+='<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n'
           fi
-          
           if [ "${{ github.event.client_payload.use_files }}" == "true" ]; then
             PERMISSIONS+='<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />\n<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />\n'
           fi
 
-          # كتابة ملف Manifest
           cat <<EOF > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -122,7 +120,7 @@ jobs:
           </manifest>
           EOF
           
-          # 6. إنشاء ملف إعدادات مسارات الملفات (File Paths)
+          # 6. إعدادات مسارات الملفات
           cat <<EOF > app/src/main/res/xml/file_paths.xml
           <?xml version="1.0" encoding="utf-8"?>
           <paths xmlns:android="http://schemas.android.com/apk/res/android">
@@ -130,7 +128,7 @@ jobs:
           </paths>
           EOF
 
-          # 7. كود MainActivity المطور (يدعم رفع الملفات والأذونات)
+          # 7. MainActivity
           cat <<EOF > app/src/main/java/com/aite/studio/MainActivity.kt
           package com.aite.studio
 
@@ -145,7 +143,6 @@ jobs:
           import android.webkit.WebSettings
           import android.webkit.WebView
           import android.webkit.WebViewClient
-          import android.widget.Toast
           import androidx.activity.result.contract.ActivityResultContracts
           import androidx.appcompat.app.AppCompatActivity
           import androidx.core.content.ContextCompat
@@ -176,7 +173,6 @@ jobs:
 
               override fun onCreate(savedInstanceState: Bundle?) {
                   super.onCreate(savedInstanceState)
-                  
                   webView = WebView(this)
                   setContentView(webView)
 
@@ -187,22 +183,15 @@ jobs:
                   webSettings.builtInZoomControls = false
                   webSettings.useWideViewPort = true
                   webSettings.loadWithOverviewMode = true
-                  
-                  // إعدادات الملفات والوسائط
                   webSettings.allowFileAccess = true
                   webSettings.allowContentAccess = true
                   webSettings.mediaPlaybackRequiresUserGesture = false
 
                   webView.webViewClient = WebViewClient()
-                  
-                  // WebChromeClient للتعامل مع الأذونات واختيار الملفات
                   webView.webChromeClient = object : WebChromeClient() {
-                      
                       override fun onPermissionRequest(request: PermissionRequest) {
-                          // منح الأذونات المطلوبة للموقع إذا كانت ممنوحة للتطبيق
                           request.grant(request.resources) 
                       }
-
                       override fun onShowFileChooser(
                           webView: WebView?,
                           filePathCallback: ValueCallback<Array<Uri>>?,
@@ -216,15 +205,11 @@ jobs:
                           return true
                       }
                   }
-
                   checkAndRequestPermissions()
-
-                  // تحميل الرابط من المتغير
                   webView.loadUrl("${{ github.event.client_payload.app_url }}")
               }
 
               private fun checkAndRequestPermissions() {
-                  // طلب الأذونات ديناميكياً بناءً على ما تم تعريفه في Manifest
                   val permissionsToRequest = mutableListOf<String>()
                   try {
                     val packageInfo = packageManager.getPackageInfo(packageName, PackageManager.GET_PERMISSIONS)
@@ -244,23 +229,64 @@ jobs:
               }
 
               override fun onBackPressed() {
-                  if (webView.canGoBack()) {
-                      webView.goBack()
-                  } else {
-                      super.onBackPressed()
-                  }
+                  if (webView.canGoBack()) webView.goBack() else super.onBackPressed()
               }
           }
           EOF
 
-          # 8. معالجة الأيقونة
-          echo "${{ github.event.client_payload.icon_base64 }}" > icon_b64.txt
-          sed -i 's/data:image\/.*;base64,//' icon_b64.txt
-          base64 -d icon_b64.txt > icon.png || base64 --decode icon_b64.txt > icon.png
+      # --- الجزء المعدل: معالجة الأيقونة بأمان باستخدام Python و ImageMagick ---
+      - name: Process Icon safely
+        env:
+          ICON_DATA: ${{ github.event.client_payload.icon_base64 }}
+        shell: python
+        run: |
+          import os
+          import base64
+          import sys
+
+          # قراءة البيانات من متغير البيئة لتجنب مشاكل سطر الأوامر مع النصوص الطويلة
+          data = os.environ.get('ICON_DATA', '')
           
-          for dir in mipmap-mdpi mipmap-hdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi; do
-            cp icon.png app/src/main/res/$dir/ic_launcher.png
-          done
+          if not data:
+              print("Error: No icon data received")
+              sys.exit(1)
+
+          # تنظيف الهيدر (مثل data:image/png;base64,)
+          if "," in data:
+              data = data.split(",")[1]
+
+          try:
+              # فك التشفير وحفظ الملف الخام
+              img_bytes = base64.b64decode(data)
+              with open("icon_raw", "wb") as f:
+                  f.write(img_bytes)
+              print("Successfully decoded icon base64")
+          except Exception as e:
+              print(f"Error decoding base64: {e}")
+              sys.exit(1)
+
+      - name: Convert and Place Icon
+        run: |
+          # تحويل الصورة الخام إلى PNG وتغيير حجمها لكل كثافة شاشة
+          # MDPI
+          convert icon_raw -resize 48x48 icon.png
+          cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
+          
+          # HDPI
+          convert icon_raw -resize 72x72 icon.png
+          cp icon.png app/src/main/res/mipmap-hdpi/ic_launcher.png
+          
+          # XHDPI
+          convert icon_raw -resize 96x96 icon.png
+          cp icon.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          
+          # XXHDPI
+          convert icon_raw -resize 144x144 icon.png
+          cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+          
+          # XXXHDPI
+          convert icon_raw -resize 192x192 icon.png
+          cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
       - name: Build APK
         run: chmod +x gradlew && ./gradlew assembleDebug
