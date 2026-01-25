@@ -5,7 +5,9 @@ const path = require('path');
 
 const app = express();
 
-app.use(express.json({ limit: '50mb' }));
+// --- التعديل هنا: زيادة الحد المسموح به إلى 200 ميجابايت ---
+app.use(express.json({ limit: '200mb' }));
+app.use(express.urlencoded({ limit: '200mb', extended: true }));
 app.use(cors());
 app.use(express.static('public'));
 
@@ -25,7 +27,6 @@ app.get('/', (req, res) => {
 app.post('/api/build', async (req, res) => {
     console.log("📩 Received build request...");
     
-    // استقبال الأذونات هنا (permissions)
     const { appName, packageName, appUrl, iconBase64, permissions } = req.body;
 
     if (!appName || !packageName || !appUrl || !iconBase64) {
@@ -45,7 +46,6 @@ app.post('/api/build', async (req, res) => {
                     package_name: packageName,
                     app_url: appUrl,
                     icon_base64: iconBase64,
-                    // تمرير الأذونات إلى GitHub Actions
                     use_camera: permissions?.camera || false,
                     use_mic: permissions?.mic || false,
                     use_location: permissions?.location || false,
@@ -70,7 +70,7 @@ app.post('/api/build', async (req, res) => {
     }
 });
 
-// تعديل نقطة فحص الحالة لإرجاع run_id
+// نقطة فحص الحالة
 app.get('/api/status', async (req, res) => {
     try {
         const response = await axios.get(
@@ -83,7 +83,7 @@ app.get('/api/status', async (req, res) => {
                 status: lastRun.status,
                 conclusion: lastRun.conclusion,
                 html_url: lastRun.html_url,
-                run_id: lastRun.id // <--- هذا السطر هو مفتاح الحل لإصلاح الرابط
+                run_id: lastRun.id 
             });
         } else {
             res.json({ status: 'queued', conclusion: null });
