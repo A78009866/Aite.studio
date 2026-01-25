@@ -671,7 +671,7 @@
             window.updatePreview();
         }
 
-        // --- Cropper Logic ---
+        // --- Cropper Logic (UPDATED HERE) ---
         let uploadedBase64 = null;
         let cropper = null;
         let pollingInterval = null;
@@ -692,10 +692,26 @@
             e.target.value = '';
         });
 
+        // 🟢 FIX: Modified performCrop function to reduce size and enforce PNG
         window.performCrop = function() {
             if(!cropper) return;
-            const canvas = cropper.getCroppedCanvas({ width: 512, height: 512, fillColor: '#fff' });
-            uploadedBase64 = canvas.toDataURL('image/jpeg', 0.9);
+            
+            // 1. تقليل الحجم إلى 192x192 وشفافية الخلفية
+            const canvas = cropper.getCroppedCanvas({ 
+                width: 192, 
+                height: 192, 
+                fillColor: 'transparent' 
+            });
+
+            // 2. التحويل إلى PNG لضمان الشفافية وقبول الصيغة
+            uploadedBase64 = canvas.toDataURL('image/png');
+
+            // 3. التحقق من الحجم
+             if (uploadedBase64.length > 100000) {
+                alert("حجم الصورة كبير جداً، يرجى اختيار صورة أبسط.");
+                return;
+            }
+
             document.getElementById('previewIcon').src = uploadedBase64;
             document.getElementById('previewIcon').style.display = 'block';
             document.getElementById('iconPlaceholder').style.display = 'none';
