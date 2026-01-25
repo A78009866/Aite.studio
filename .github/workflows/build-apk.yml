@@ -19,13 +19,13 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      # تثبيت أدوات معالجة الصور الضرورية
+      # تثبيت ImageMagick للمعالجة
       - name: Install Image Tools
         run: sudo apt-get update && sudo apt-get install -y imagemagick
 
       - name: Build System Setup
         run: |
-          # 1. تنظيف وتجهيز اسم الحزمة
+          # 1. تنظيف اسم الحزمة
           RAW_PKG="${{ github.event.client_payload.package_name }}"
           CLEAN_PKG=$(echo "$RAW_PKG" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9.')
           [ -z "$CLEAN_PKG" ] && CLEAN_PKG="com.aite.app"
@@ -34,11 +34,11 @@ jobs:
           mkdir -p app/src/main/res/mipmap-mdpi app/src/main/res/mipmap-hdpi app/src/main/res/mipmap-xhdpi app/src/main/res/mipmap-xxhdpi app/src/main/res/mipmap-xxxhdpi
           mkdir -p gradle/wrapper app/src/main/res/xml app/src/main/java/com/aite/studio
           
-          # 3. إعداد Gradle Wrapper
+          # 3. إعداد Gradle
           curl -L https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
 
-          # 4. ملف build.gradle
+          # 4. build.gradle
           cat <<EOF > app/build.gradle
           plugins { 
               id 'com.android.application'
@@ -68,7 +68,7 @@ jobs:
           }
           EOF
 
-          # 5. بناء المانيفست
+          # 5. Manifest
           PERMISSIONS=""
           if [ "${{ github.event.client_payload.use_camera }}" == "true" ]; then
             PERMISSIONS+='<uses-permission android:name="android.permission.CAMERA" />\n'
@@ -106,7 +106,6 @@ jobs:
                           <category android:name="android.intent.category.LAUNCHER" />
                       </intent-filter>
                   </activity>
-
                   <provider
                       android:name="androidx.core.content.FileProvider"
                       android:authorities="\${applicationId}.fileprovider"
@@ -120,7 +119,7 @@ jobs:
           </manifest>
           EOF
           
-          # 6. إعدادات مسارات الملفات
+          # 6. File Paths
           cat <<EOF > app/src/main/res/xml/file_paths.xml
           <?xml version="1.0" encoding="utf-8"?>
           <paths xmlns:android="http://schemas.android.com/apk/res/android">
@@ -131,7 +130,6 @@ jobs:
           # 7. MainActivity
           cat <<EOF > app/src/main/java/com/aite/studio/MainActivity.kt
           package com.aite.studio
-
           import android.Manifest
           import android.content.Intent
           import android.content.pm.PackageManager
@@ -150,21 +148,10 @@ jobs:
           class MainActivity : AppCompatActivity() {
               private lateinit var webView: WebView
               private var fileUploadCallback: ValueCallback<Array<Uri>>? = null
-
-              private val requestPermissionLauncher = registerForActivityResult(
-                  ActivityResultContracts.RequestMultiplePermissions()
-              ) { permissions -> }
-
-              private val fileChooserLauncher = registerForActivityResult(
-                  ActivityResultContracts.StartActivityForResult()
-              ) { result ->
+              private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
+              private val fileChooserLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
                   if (result.resultCode == RESULT_OK) {
-                      val data = result.data?.data
-                      if (data != null) {
-                          fileUploadCallback?.onReceiveValue(arrayOf(data))
-                      } else {
-                          fileUploadCallback?.onReceiveValue(null)
-                      }
+                      fileUploadCallback?.onReceiveValue(if (result.data?.data != null) arrayOf(result.data!!.data!!) else null)
                   } else {
                       fileUploadCallback?.onReceiveValue(null)
                   }
@@ -175,7 +162,6 @@ jobs:
                   super.onCreate(savedInstanceState)
                   webView = WebView(this)
                   setContentView(webView)
-
                   val webSettings = webView.settings
                   webSettings.javaScriptEnabled = true
                   webSettings.domStorageEnabled = true
@@ -186,18 +172,11 @@ jobs:
                   webSettings.allowFileAccess = true
                   webSettings.allowContentAccess = true
                   webSettings.mediaPlaybackRequiresUserGesture = false
-
                   webView.webViewClient = WebViewClient()
                   webView.webChromeClient = object : WebChromeClient() {
-                      override fun onPermissionRequest(request: PermissionRequest) {
-                          request.grant(request.resources) 
-                      }
-                      override fun onShowFileChooser(
-                          webView: WebView?,
-                          filePathCallback: ValueCallback<Array<Uri>>?,
-                          fileChooserParams: FileChooserParams?
-                      ): Boolean {
-                          fileUploadCallback = filePathCallback
+                      override fun onPermissionRequest(request: PermissionRequest) { request.grant(request.resources) }
+                      override fun onShowFileChooser(v: WebView?, c: ValueCallback<Array<Uri>>?, p: FileChooserParams?): Boolean {
+                          fileUploadCallback = c
                           val intent = Intent(Intent.ACTION_GET_CONTENT)
                           intent.addCategory(Intent.CATEGORY_OPENABLE)
                           intent.type = "*/*"
@@ -208,85 +187,42 @@ jobs:
                   checkAndRequestPermissions()
                   webView.loadUrl("${{ github.event.client_payload.app_url }}")
               }
-
               private fun checkAndRequestPermissions() {
-                  val permissionsToRequest = mutableListOf<String>()
+                  val perms = mutableListOf<String>()
                   try {
-                    val packageInfo = packageManager.getPackageInfo(packageName, PackageManager.GET_PERMISSIONS)
-                    val requestedPermissions = packageInfo.requestedPermissions
-                    if (requestedPermissions != null) {
-                        for (perm in requestedPermissions) {
-                            if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
-                                permissionsToRequest.add(perm)
-                            }
-                        }
-                    }
+                    val info = packageManager.getPackageInfo(packageName, PackageManager.GET_PERMISSIONS)
+                    info.requestedPermissions?.forEach { if (ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED) perms.add(it) }
                   } catch (e: Exception) { }
-                  
-                  if (permissionsToRequest.isNotEmpty()) {
-                      requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
-                  }
+                  if (perms.isNotEmpty()) requestPermissionLauncher.launch(perms.toTypedArray())
               }
-
-              override fun onBackPressed() {
-                  if (webView.canGoBack()) webView.goBack() else super.onBackPressed()
-              }
+              override fun onBackPressed() { if (webView.canGoBack()) webView.goBack() else super.onBackPressed() }
           }
           EOF
 
-      # --- الجزء المعدل: معالجة الأيقونة بأمان باستخدام Python و ImageMagick ---
-      - name: Process Icon safely
-        env:
-          ICON_DATA: ${{ github.event.client_payload.icon_base64 }}
-        shell: python
+      # --- الجزء المعدل الجديد: تحميل الصورة من الرابط ---
+      - name: Download Icon
         run: |
-          import os
-          import base64
-          import sys
-
-          # قراءة البيانات من متغير البيئة لتجنب مشاكل سطر الأوامر مع النصوص الطويلة
-          data = os.environ.get('ICON_DATA', '')
+          echo "Downloading icon from: ${{ github.event.client_payload.icon_url }}"
           
-          if not data:
-              print("Error: No icon data received")
-              sys.exit(1)
+          # استخدام التوكن للوصول للملف إذا كان المستودع خاصاً
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+               -L "${{ github.event.client_payload.icon_url }}" \
+               -o icon_raw
+               
+          # التأكد من أن الملف تم تحميله
+          if [ ! -s icon_raw ]; then
+             echo "Error: Icon file is empty or download failed."
+             exit 1
+          fi
 
-          # تنظيف الهيدر (مثل data:image/png;base64,)
-          if "," in data:
-              data = data.split(",")[1]
-
-          try:
-              # فك التشفير وحفظ الملف الخام
-              img_bytes = base64.b64decode(data)
-              with open("icon_raw", "wb") as f:
-                  f.write(img_bytes)
-              print("Successfully decoded icon base64")
-          except Exception as e:
-              print(f"Error decoding base64: {e}")
-              sys.exit(1)
-
-      - name: Convert and Place Icon
+      - name: Process and Place Icon
         run: |
-          # تحويل الصورة الخام إلى PNG وتغيير حجمها لكل كثافة شاشة
-          # MDPI
-          convert icon_raw -resize 48x48 icon.png
-          cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
-          
-          # HDPI
-          convert icon_raw -resize 72x72 icon.png
-          cp icon.png app/src/main/res/mipmap-hdpi/ic_launcher.png
-          
-          # XHDPI
-          convert icon_raw -resize 96x96 icon.png
-          cp icon.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
-          
-          # XXHDPI
-          convert icon_raw -resize 144x144 icon.png
-          cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-          
-          # XXXHDPI
-          convert icon_raw -resize 192x192 icon.png
-          cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          # تحويل وتوزيع الأيقونات
+          convert icon_raw -resize 48x48 app/src/main/res/mipmap-mdpi/ic_launcher.png
+          convert icon_raw -resize 72x72 app/src/main/res/mipmap-hdpi/ic_launcher.png
+          convert icon_raw -resize 96x96 app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          convert icon_raw -resize 144x144 app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+          convert icon_raw -resize 192x192 app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
       - name: Build APK
         run: chmod +x gradlew && ./gradlew assembleDebug
@@ -300,12 +236,3 @@ jobs:
           files: app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Send to Telegram
-        if: success()
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_TOKEN }}
-          message: "✅ تم بناء تطبيق: ${{ github.event.client_payload.app_name }}"
-          document: app/build/outputs/apk/debug/app-debug.apk
