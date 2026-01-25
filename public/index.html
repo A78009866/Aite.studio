@@ -692,16 +692,21 @@
             e.target.value = '';
         });
 
-        window.performCrop = function() {
+                window.performCrop = function() {
             if(!cropper) return;
-            const canvas = cropper.getCroppedCanvas({ width: 512, height: 512, fillColor: '#fff' });
-            uploadedBase64 = canvas.toDataURL('image/jpeg', 0.9);
+            // زيادة الدقة إلى 1024x1024 للحصول على جودة ممتازة
+            const canvas = cropper.getCroppedCanvas({ width: 1024, height: 1024, fillColor: '#fff' });
+            
+            // التغيير المهم: استخدام image/png بدلاً من jpeg للحفاظ على الجودة والشفافية
+            uploadedBase64 = canvas.toDataURL('image/png', 1.0);
+            
             document.getElementById('previewIcon').src = uploadedBase64;
             document.getElementById('previewIcon').style.display = 'block';
             document.getElementById('iconPlaceholder').style.display = 'none';
             document.getElementById('uploadText').innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:1.5rem;"></i>';
             window.closeCropModal();
         }
+
 
         window.closeCropModal = function() {
             document.getElementById('cropModal').style.display = 'none';
