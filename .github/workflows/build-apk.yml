@@ -19,26 +19,21 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      # تثبيت ImageMagick للمعالجة
       - name: Install Image Tools
         run: sudo apt-get update && sudo apt-get install -y imagemagick
 
       - name: Build System Setup
         run: |
-          # 1. تنظيف اسم الحزمة
           RAW_PKG="${{ github.event.client_payload.package_name }}"
           CLEAN_PKG=$(echo "$RAW_PKG" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9.')
           [ -z "$CLEAN_PKG" ] && CLEAN_PKG="com.aite.app"
 
-          # 2. إنشاء المجلدات
           mkdir -p app/src/main/res/mipmap-mdpi app/src/main/res/mipmap-hdpi app/src/main/res/mipmap-xhdpi app/src/main/res/mipmap-xxhdpi app/src/main/res/mipmap-xxxhdpi
           mkdir -p gradle/wrapper app/src/main/res/xml app/src/main/java/com/aite/studio
           
-          # 3. إعداد Gradle
           curl -L https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
 
-          # 4. build.gradle
           cat <<EOF > app/build.gradle
           plugins { 
               id 'com.android.application'
@@ -68,7 +63,6 @@ jobs:
           }
           EOF
 
-          # 5. Manifest
           PERMISSIONS=""
           if [ "${{ github.event.client_payload.use_camera }}" == "true" ]; then
             PERMISSIONS+='<uses-permission android:name="android.permission.CAMERA" />\n'
@@ -119,7 +113,6 @@ jobs:
           </manifest>
           EOF
           
-          # 6. File Paths
           cat <<EOF > app/src/main/res/xml/file_paths.xml
           <?xml version="1.0" encoding="utf-8"?>
           <paths xmlns:android="http://schemas.android.com/apk/res/android">
@@ -127,7 +120,6 @@ jobs:
           </paths>
           EOF
 
-          # 7. MainActivity (تم التعديل هنا لحل مشكلة تسجيل الدخول)
           cat <<EOF > app/src/main/java/com/aite/studio/MainActivity.kt
           package com.aite.studio
           import android.Manifest
@@ -173,11 +165,8 @@ jobs:
                   webSettings.allowContentAccess = true
                   webSettings.mediaPlaybackRequiresUserGesture = false
                   
-                  // --- FIX: Google Login Issue ---
-                  // إزالة علامة الويب فيو لخداع جوجل
                   val newUA = webSettings.userAgentString.replace("; wv", "")
                   webSettings.userAgentString = newUA
-                  // -------------------------------
 
                   webView.webViewClient = WebViewClient()
                   webView.webChromeClient = object : WebChromeClient() {
@@ -206,13 +195,10 @@ jobs:
           }
           EOF
 
-      # --- تحميل الصورة ---
       - name: Download Icon
         run: |
           echo "Downloading icon from: ${{ github.event.client_payload.icon_url }}"
-          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-               -L "${{ github.event.client_payload.icon_url }}" \
-               -o icon_raw
+          curl -L "${{ github.event.client_payload.icon_url }}" -o icon_raw
           if [ ! -s icon_raw ]; then
              echo "Error: Icon file is empty or download failed."
              exit 1
