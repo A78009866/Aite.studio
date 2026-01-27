@@ -2,58 +2,48 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const path = require('path');
+const cloudinary = require('cloudinary').v2; // استدعاء مكتبة Cloudinary
 
 const app = express();
 
-// الحد المسموح به لاستقبال البيانات من المستخدم
-app.use(express.json({ limit: '200mb' }));
-app.use(express.urlencoded({ limit: '200mb', extended: true }));
+// زيادة الحد المسموح به لاستقبال صور Base64
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 app.use(express.static('public'));
 
+// إعدادات GitHub من البيئة
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const REPO_OWNER = process.env.REPO_OWNER;
 const REPO_NAME = process.env.REPO_NAME;
 
+// إعدادات Cloudinary (بناءً على البيانات التي أرسلتها)
+cloudinary.config({ 
+  cloud_name: 'duixjs8az', 
+  api_key: '143978951428697', 
+  api_secret: '9dX6eIvntdtGQIU7oXGMSRG9I2o' 
+});
+
 if (!GITHUB_TOKEN || !REPO_OWNER || !REPO_NAME) {
-    console.error("❌ CRITICAL ERROR: Environment variables are missing.");
+    console.error("❌ CRITICAL ERROR: Environment variables for GitHub are missing.");
 }
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// دالة مساعدة لرفع الملف إلى GitHub
-async function uploadIconToGitHub(base64Data, fileName) {
+// دالة لرفع الصورة إلى Cloudinary
+async function uploadToCloudinary(base64Data) {
     try {
-        // إزالة الهيدر من Base64 (data:image/png;base64,...)
-        const content = base64Data.replace(/^data:image\/\w+;base64,/, "");
-        
-        const path = `icons/${fileName}`;
-        const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`;
-
-        console.log(`📤 Uploading icon to: ${path}`);
-
-        // التحقق مما إذا كان الملف موجوداً لحذفه أو تحديثه (اختياري، هنا سننشئ ملفاً جديداً دائماً لتجنب التعقيد)
-        // سنستخدم التوقيت لضمان تفرد الاسم
-        
-        const response = await axios.put(url, {
-            message: `Upload icon for build ${fileName}`,
-            content: content,
-            encoding: "base64"
-        }, {
-            headers: {
-                'Authorization': `token ${GITHUB_TOKEN}`,
-                'Accept': 'application/vnd.github.v3+json'
-            }
+        const result = await cloudinary.uploader.upload(base64Data, {
+            folder: "app_icons", // مجلد داخل Cloudinary لتنظيم الصور
+            resource_type: "image",
+            allowed_formats: ["jpg", "png", "jpeg"]
         });
-
-        // إرجاع رابط التحميل المباشر
-        return response.data.content.download_url;
-
+        return result.secure_url; // إرجاع الرابط الآمن (HTTPS)
     } catch (error) {
-        console.error("❌ Error uploading icon:", error.response ? error.response.data : error.message);
-        throw new Error("Failed to upload icon to GitHub Storage");
+        console.error("Cloudinary Error:", error);
+        throw new Error("Failed to upload image to Cloudinary");
     }
 }
 
@@ -67,15 +57,14 @@ app.post('/api/build', async (req, res) => {
     }
 
     try {
-        // 1. رفع الصورة أولاً للحصول على رابط
-        // استخدام الطابع الزمني لاسم ملف فريد
-        const uniqueName = `icon_${Date.now()}.png`;
-        const iconUrl = await uploadIconToGitHub(iconBase64, uniqueName);
+        // 1. رفع الصورة إلى Cloudinary
+        console.log("☁️ Uploading icon to Cloudinary...");
+        const iconUrl = await uploadToCloudinary(iconBase64);
+        console.log(`✅ Icon uploaded: ${iconUrl}`);
         
-        console.log(`✅ Icon uploaded. URL: ${iconUrl}`);
+        // 2. إرسال البيانات إلى GitHub Action
         console.log(`🚀 Triggering GitHub Action...`);
         
-        // 2. إرسال الرابط بدلاً من Base64 لتفادي خطأ الحجم
         await axios.post(
             `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/dispatches`,
             {
@@ -84,7 +73,7 @@ app.post('/api/build', async (req, res) => {
                     app_name: appName,
                     package_name: packageName,
                     app_url: appUrl,
-                    icon_url: iconUrl, // <-- نرسل الرابط هنا
+                    icon_url: iconUrl, // نرسل رابط Cloudinary
                     use_camera: permissions?.camera || false,
                     use_mic: permissions?.mic || false,
                     use_location: permissions?.location || false,
@@ -109,7 +98,7 @@ app.post('/api/build', async (req, res) => {
     }
 });
 
-// API الحالة كما هو
+// API الحالة (بدون تغيير)
 app.get('/api/status', async (req, res) => {
     try {
         const response = await axios.get(
