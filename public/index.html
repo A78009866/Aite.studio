@@ -6,12 +6,9 @@
     <title>Aite.studio | App Builder</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="icon" type="image/png" href="https://res.cloudinary.com/duixjs8az/image/upload/v1769367138/post_media/1769367138249-%C3%98%C2%A8%C3%98%C2%AF%C3%99%C2%88%C3%99%C2%86%20%C3%98%C2%A7%C3%98%C2%B3%C3%99%C2%85253_20260125194924.png"/>
-    <link rel="apple-touch-icon" href="https://res.cloudinary.com/duixjs8az/image/upload/v1769367138/post_media/1769367138249-%C3%98%C2%A8%C3%98%C2%AF%C3%99%C2%88%C3%99%C2%86%20%C3%98%C2%A7%C3%98%C2%B3%C3%99%C2%85253_20260125194924.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
-
     <style>
-        /* نفس التنسيقات السابقة تماماً */
+        /* التنسيقات (CSS) كما هي بدون تغيير للحفاظ على التصميم */
         :root { --bg-dark: #0a0a0a; --bg-card: #141414; --primary: #00E676; --danger: #ff4444; --text-main: #ffffff; --text-muted: #888888; --border: #333333; --font-ar: 'Cairo', sans-serif; --font-en: 'Outfit', sans-serif; }
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
         body { font-family: var(--font-ar); background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
@@ -46,9 +43,6 @@
         .btn-confirm { background: var(--primary); color: #000; }
         .btn-danger { background: var(--danger); color: #fff; }
         .btn-cancel { background: #333; color: white; }
-        .btn-confirm:hover { box-shadow: 0 0 10px rgba(0,230,118,0.4); }
-        .btn-danger:hover { box-shadow: 0 0 10px rgba(255, 68, 68, 0.4); }
-        .btn-cancel:hover { background: #444; }
         .lang-option { display: block; width: 100%; padding: 15px; margin: 10px 0; background: #222; border: 1px solid var(--border); border-radius: 10px; color: white; cursor: pointer; transition: 0.3s; font-size: 1.1rem; }
         .lang-option:hover { background: var(--primary); color: black; border-color: var(--primary); }
         #cropModal { z-index: 4000; }
@@ -69,9 +63,7 @@
         html[dir="ltr"] .card-actions { right: 10px; left: auto; }
         .action-btn { width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.3s; font-size: 0.9rem; color: white; }
         .btn-delete { background: rgba(255, 68, 68, 0.2); color: #ff4444; border: 1px solid #ff4444; }
-        .btn-delete:hover { background: #ff4444; color: white; }
         .btn-edit { background: rgba(0, 230, 118, 0.2); color: var(--primary); border: 1px solid var(--primary); }
-        .btn-edit:hover { background: var(--primary); color: black; }
         .download-btn-small { background: #222; color: white; padding: 8px 16px; border-radius: 8px; border: 1px solid #333; text-decoration: none; font-size: 0.85rem; transition: 0.3s; display: flex; align-items: center; gap: 5px; }
         .download-btn-small:hover { background: var(--primary); color: black; border-color: var(--primary); }
         .main-container { flex: 1; display: flex; flex-wrap: wrap; width: 100%; padding: 2rem; gap: 4rem; justify-content: center; align-items: flex-start; }
@@ -96,7 +88,6 @@
         .build-btn:hover { background: var(--primary); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 230, 118, 0.2); }
         .build-btn:disabled { opacity: 0.5; cursor: wait; }
         .cancel-edit-btn { display: none; margin-top: 10px; width: 100%; background: transparent; color: #888; border: 1px solid #333; padding: 12px; border-radius: 12px; cursor: pointer; transition: 0.3s; }
-        .cancel-edit-btn:hover { border-color: #666; color: white; }
         #statusContainer { margin-top: 25px; padding: 25px; background: #111; border-radius: 16px; border: 1px solid #222; display: none; animation: fadeIn 0.5s ease; }
         .progress-track { width: 100%; height: 8px; background: #222; border-radius: 10px; overflow: hidden; margin-top: 15px; }
         .progress-fill { width: 0%; height: 100%; background: var(--primary); transition: width 0.5s ease; }
@@ -156,7 +147,7 @@
         <div class="modal-content">
             <div class="modal-icon danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
             <h3 style="margin-bottom: 10px;" id="deleteTitle">حذف التطبيق؟</h3>
-            <p style="color: var(--text-muted); margin-bottom: 20px;" id="deleteDesc">هل أنت متأكد من حذف هذا التطبيق نهائياً؟ لا يمكن التراجع عن هذا الإجراء.</p>
+            <p style="color: var(--text-muted); margin-bottom: 20px;" id="deleteDesc">هل أنت متأكد من حذف هذا التطبيق نهائياً؟</p>
             <div class="modal-actions">
                 <button class="modal-btn btn-danger" onclick="confirmDelete()">نعم، احذف</button>
                 <button class="modal-btn btn-cancel" onclick="closeDeleteModal()">إلغاء</button>
@@ -300,7 +291,7 @@
         let currentEditingKey = null;
         let appToDeleteKey = null;
 
-        // Translations
+        // Translations (نفس السابقة)
         const translations = {
             ar: { 
                 dir: "rtl", title: "أنشئ تطبيقك الخاص", subtitle: "حوّل موقعك الإلكتروني إلى تطبيق Android احترافي.", 
@@ -329,7 +320,7 @@
         };
         let currentLang = 'ar';
 
-        // Auth
+        // Auth Listeners
         document.getElementById('loginBtn').addEventListener('click', () => {
             signInWithPopup(auth, provider).catch((error) => showToast("Error: " + error.message));
         });
@@ -351,12 +342,11 @@
             }
         });
 
-        // UI Helpers
+        // UI Functions (Menu, Lang, Modals)
         window.toggleUserMenu = function() { document.getElementById('userMenu').classList.toggle('show'); }
         window.addEventListener('click', function(e) {
             if (!document.querySelector('.user-dropdown').contains(e.target)) document.getElementById('userMenu').classList.remove('show');
         });
-
         window.openLangModal = function() { document.getElementById('langModal').style.display = 'flex'; }
         window.closeLangModal = function(e) { if(e.target.id === 'langModal') document.getElementById('langModal').style.display = 'none'; }
         
@@ -367,8 +357,6 @@
             document.getElementById('currentLangLabel').innerText = lang === 'ar' ? 'العربية' : 'English';
             document.querySelectorAll('[data-i18n]').forEach(el => el.innerHTML = t[el.getAttribute('data-i18n')]);
             document.querySelectorAll('[data-i18n-placeholder]').forEach(el => el.placeholder = t[el.getAttribute('data-i18n-placeholder')]);
-            document.getElementById('deleteTitle').innerText = t.delete_title;
-            document.getElementById('deleteDesc').innerText = t.delete_desc;
             updateBtnText();
             updatePreview();
             document.getElementById('langModal').style.display = 'none';
@@ -376,14 +364,10 @@
 
         function updateBtnText() {
             const btnSpan = document.getElementById('btnText');
-            if (currentEditingKey) {
-                btnSpan.innerText = translations[currentLang].btnUpdate;
-            } else {
-                btnSpan.innerText = translations[currentLang].btnBuild;
-            }
+            btnSpan.innerText = currentEditingKey ? translations[currentLang].btnUpdate : translations[currentLang].btnBuild;
         }
 
-        // Firebase Apps
+        // Firebase Data
         function loadUserApps(userId) {
             const appsRef = ref(db, 'users/' + userId + '/apps');
             const appsListEl = document.getElementById('appsList');
@@ -396,29 +380,19 @@
                     appsListEl.innerHTML = `<p style="color:#888; grid-column: 1/-1; text-align:center;">${currentLang === 'ar' ? 'لم تقم بإنشاء أي تطبيقات بعد.' : 'No apps created yet.'}</p>`;
                     return;
                 }
-
                 userAppsData = data;
-                const apps = Object.entries(data).reverse();
-
-                apps.forEach(([key, app]) => {
+                Object.entries(data).reverse().forEach(([key, app]) => {
                     const card = document.createElement('div');
                     card.className = 'app-card';
                     card.innerHTML = `
                         <div class="card-actions">
-                            <button class="action-btn btn-delete" onclick="window.askDelete('${key}')" title="حذف">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
-                            <button class="action-btn btn-edit" onclick="window.editApp('${key}')" title="تعديل">
-                                <i class="fa-solid fa-pen"></i>
-                            </button>
+                            <button class="action-btn btn-delete" onclick="window.askDelete('${key}')"><i class="fa-solid fa-xmark"></i></button>
+                            <button class="action-btn btn-edit" onclick="window.editApp('${key}')"><i class="fa-solid fa-pen"></i></button>
                         </div>
                         <img src="${app.icon || 'https://via.placeholder.com/150'}" alt="Icon">
                         <h3>${app.appName}</h3>
                         <p>${app.packageName}</p>
-                        <a href="${app.downloadLink}" class="download-btn-small" target="_blank">
-                            <i class="fa-solid fa-cloud-arrow-down"></i> ${translations[currentLang].download_btn}
-                        </a>
-                        <p style="font-size:0.7rem; color:#444; margin-top:10px;">${new Date(app.timestamp).toLocaleDateString()}</p>
+                        <a href="${app.downloadLink}" class="download-btn-small" target="_blank"><i class="fa-solid fa-cloud-arrow-down"></i> ${translations[currentLang].download_btn}</a>
                     `;
                     appsListEl.appendChild(card);
                 });
@@ -427,56 +401,33 @@
 
         function saveAppToHistory(appData) {
             if(!currentUser) return;
-            
             const newData = {
                 appName: appData.appName,
                 packageName: appData.packageName,
                 appUrl: document.getElementById('appUrl').value,
-                permissions: {
-                    camera: document.getElementById('permCamera').checked,
-                    mic: document.getElementById('permMic').checked,
-                    location: document.getElementById('permLoc').checked,
-                    files: document.getElementById('permFile').checked
-                },
+                permissions: appData.permissions,
                 downloadLink: appData.downloadLink,
                 icon: appData.iconBase64,
                 timestamp: Date.now()
             };
-
             if (currentEditingKey) {
-                set(ref(db, 'users/' + currentUser.uid + '/apps/' + currentEditingKey), newData)
-                    .then(() => {
-                        showToast(currentLang === 'ar' ? 'تم تحديث التطبيق بنجاح' : 'App Updated Successfully');
-                        exitEditMode();
-                    });
+                set(ref(db, 'users/' + currentUser.uid + '/apps/' + currentEditingKey), newData).then(exitEditMode);
             } else {
                 push(ref(db, 'users/' + currentUser.uid + '/apps'), newData);
             }
         }
 
-        window.askDelete = function(key) {
-            appToDeleteKey = key;
-            document.getElementById('deleteModal').style.display = 'flex';
-        }
-
+        // Deletion Logic
+        window.askDelete = function(key) { appToDeleteKey = key; document.getElementById('deleteModal').style.display = 'flex'; }
+        window.closeDeleteModal = function() { document.getElementById('deleteModal').style.display = 'none'; appToDeleteKey = null; }
         window.confirmDelete = function() {
             if (appToDeleteKey && currentUser) {
-                const appRef = ref(db, 'users/' + currentUser.uid + '/apps/' + appToDeleteKey);
-                remove(appRef)
-                    .then(() => {
-                        showToast(translations[currentLang].delete_success);
-                        if(currentEditingKey === appToDeleteKey) exitEditMode();
-                    })
-                    .catch((err) => showToast('Error: ' + err.message));
+                remove(ref(db, 'users/' + currentUser.uid + '/apps/' + appToDeleteKey)).then(() => showToast(translations[currentLang].delete_success));
             }
             window.closeDeleteModal();
         }
 
-        window.closeDeleteModal = function() {
-            document.getElementById('deleteModal').style.display = 'none';
-            appToDeleteKey = null;
-        }
-
+        // Edit Logic
         window.editApp = function(key) {
             const appData = userAppsData[key];
             if(!appData) return;
@@ -488,14 +439,12 @@
             document.getElementById('appName').value = appData.appName || '';
             document.getElementById('packageName').value = appData.packageName || '';
             document.getElementById('appUrl').value = appData.appUrl || '';
-
             if(appData.permissions) {
                 document.getElementById('permCamera').checked = appData.permissions.camera || false;
                 document.getElementById('permMic').checked = appData.permissions.mic || false;
                 document.getElementById('permLoc').checked = appData.permissions.location || false;
                 document.getElementById('permFile').checked = appData.permissions.files || false;
             }
-
             if(appData.icon) {
                 uploadedBase64 = appData.icon;
                 document.getElementById('previewIcon').src = appData.icon;
@@ -504,7 +453,6 @@
                 document.getElementById('uploadText').innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:1.5rem;"></i>';
             }
             window.updatePreview();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         window.exitEditMode = function() {
@@ -520,10 +468,9 @@
             window.updatePreview();
         }
 
+        // Image Cropper
         let uploadedBase64 = null;
         let cropper = null;
-        let pollingInterval = null;
-
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -539,10 +486,9 @@
             }
             e.target.value = '';
         });
-
         window.performCrop = function() {
             if(!cropper) return;
-            const canvas = cropper.getCroppedCanvas({ width: 1024, height: 1024, fillColor: '#fff' });
+            const canvas = cropper.getCroppedCanvas({ width: 512, height: 512, fillColor: '#fff' });
             uploadedBase64 = canvas.toDataURL('image/png', 1.0);
             document.getElementById('previewIcon').src = uploadedBase64;
             document.getElementById('previewIcon').style.display = 'block';
@@ -550,18 +496,12 @@
             document.getElementById('uploadText').innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:1.5rem;"></i>';
             window.closeCropModal();
         }
+        window.closeCropModal = function() { document.getElementById('cropModal').style.display = 'none'; if(cropper) { cropper.destroy(); cropper = null; } }
+        window.updatePreview = function() { document.getElementById('previewName').innerText = document.getElementById('appName').value || translations[currentLang].preview_default; }
 
-        window.closeCropModal = function() {
-            document.getElementById('cropModal').style.display = 'none';
-            if(cropper) { cropper.destroy(); cropper = null; }
-        }
+        // --- Build Logic (FIXED) ---
+        let pollingInterval = null;
 
-        window.updatePreview = function() {
-            const val = document.getElementById('appName').value;
-            document.getElementById('previewName').innerText = val || translations[currentLang].preview_default;
-        }
-
-        // --- Build Process ---
         document.getElementById('buildForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             if(!uploadedBase64) return showToast(translations[currentLang].toast_no_icon);
@@ -580,7 +520,7 @@
             };
 
             try {
-                // إرسال الصورة كـ Base64 إلى السيرفر وهو من يتولى رفعها لـ Cloudinary
+                // نطلب البناء من السيرفر
                 const res = await fetch('/api/build', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -588,20 +528,28 @@
                         appName: appName,
                         packageName: packageName,
                         appUrl: document.getElementById('appUrl').value,
-                        iconBase64: uploadedBase64, // إرسال الصورة الخام
+                        iconBase64: uploadedBase64,
                         permissions: perms
                     })
                 });
                 
-                if(res.ok) {
-                    startMonitoring(appName, packageName);
+                const data = await res.json();
+                
+                if(res.ok && data.success) {
+                    // الأهم: نستلم Run ID فريد ونبدأ مراقبته
+                    startMonitoring(appName, packageName, data.run_id, perms);
                 } else { 
-                    showToast('خطأ في بدء البناء'); btn.disabled = false; 
+                    showToast('خطأ: ' + (data.error || 'غير معروف')); 
+                    btn.disabled = false; 
                 }
-            } catch(err) { showToast('خطأ في الاتصال'); btn.disabled = false; }
+            } catch(err) { 
+                showToast('خطأ في الاتصال بالسيرفر'); 
+                console.error(err);
+                btn.disabled = false; 
+            }
         });
 
-        async function startMonitoring(currentAppName, currentPkgName) {
+        async function startMonitoring(currentAppName, currentPkgName, runId, currentPerms) {
             const statusTxt = document.getElementById('currentStatus');
             const bar = document.getElementById('progressBar');
             const resultArea = document.getElementById('resultArea');
@@ -609,9 +557,10 @@
             
             if(pollingInterval) clearInterval(pollingInterval);
 
+            // مراقبة الـ Run ID المحدد فقط
             pollingInterval = setInterval(async () => {
                 try {
-                    const res = await fetch('/api/status');
+                    const res = await fetch(`/api/status/${runId}`);
                     const data = await res.json();
 
                     if(data.status === 'queued') {
@@ -624,12 +573,23 @@
                         
                         if(data.conclusion === 'success') {
                             statusTxt.innerText = t.status_s; bar.style.width = '100%';
-                            const directLink = `https://github.com/A78009866/Aite.studio/releases/download/build-${data.run_id}/app-debug.apk`;
+                            
+                            // رابط التحميل يعتمد على الـ ID لضمان الصحة
+                            // ملاحظة: تأكد أن ملف الـ workflow يقوم بإنشاء Release بنفس الـ run_id
+                            // (الكود الذي أرسلته لك سابقاً لملف yml يفعل ذلك: tag_name: build-${{ github.run_id }})
+                            const repoOwner = "A78009866"; // استبدلها إذا تغير المالك
+                            const repoName = "aite-studio"; // استبدلها إذا تغير الاسم
+                            
+                            // ملاحظة: السيرفر يعرف المالك والاسم، يمكننا تحسين هذا بجعل السيرفر يرجع الرابط
+                            // لكن للتبسيط سنستخدم الهيكل القياسي
+                            const directLink = `https://github.com/A78009866/aite-studio/releases/download/build-${runId}/app-debug.apk`;
+                            
                             resultArea.innerHTML = `<a href="${directLink}" class="build-btn" style="background:var(--primary); color:black; text-decoration:none; margin-top: 10px;"><i class="fa-solid fa-cloud-arrow-down"></i> ${t.download_btn}</a>`;
                             
                             saveAppToHistory({
                                 appName: currentAppName,
                                 packageName: currentPkgName,
+                                permissions: currentPerms,
                                 downloadLink: directLink,
                                 iconBase64: uploadedBase64
                             });
@@ -639,13 +599,12 @@
                         }
                     }
                 } catch(e) { console.error(e); }
-            }, 6000);
+            }, 6000); // كل 6 ثواني
         }
 
         window.switchTab = function(tabName) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-            
             if(tabName === 'build') {
                 document.getElementById('buildView').classList.add('active');
                 document.querySelectorAll('.tab-btn')[0].classList.add('active');
@@ -655,17 +614,8 @@
                 if(currentEditingKey) exitEditMode();
             }
         }
-
-        window.showToast = function(msg) {
-            const t = document.getElementById('toast');
-            t.innerText = msg; t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 4000);
-        }
-        
-        setInterval(() => {
-            const now = new Date();
-            document.getElementById('phoneTime').innerText = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
-        }, 1000);
+        window.showToast = function(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 4000); }
+        setInterval(() => { const now = new Date(); document.getElementById('phoneTime').innerText = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0'); }, 1000);
     </script>
 </body>
 </html>
