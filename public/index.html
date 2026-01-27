@@ -582,7 +582,7 @@
                             
                             // ملاحظة: السيرفر يعرف المالك والاسم، يمكننا تحسين هذا بجعل السيرفر يرجع الرابط
                             // لكن للتبسيط سنستخدم الهيكل القياسي
-                            const directLink = `https://github.com/A78009866/aite-studio/releases/download/build-${runId}/app-debug.apk`;
+                            const directLink = `https://github.com/${repoOwner}/${repoName}/releases/download/build-${runId}/app-debug.apk`;
                             
                             resultArea.innerHTML = `<a href="${directLink}" class="build-btn" style="background:var(--primary); color:black; text-decoration:none; margin-top: 10px;"><i class="fa-solid fa-cloud-arrow-down"></i> ${t.download_btn}</a>`;
                             
