@@ -32,7 +32,7 @@ app.get('/', (req, res) => {
 
 // --- API: طلب البناء ---
 app.post('/api/build', async (req, res) => {
-    const { appName, packageName, appUrl, iconBase64, permissions } = req.body;
+    const { appName, packageName, appUrl, iconBase64, permissions, customizations } = req.body; // Added customizations
 
     if (!appName || !packageName || !appUrl || !iconBase64) {
         return res.status(400).json({ error: 'بيانات ناقصة' });
@@ -59,7 +59,14 @@ app.post('/api/build', async (req, res) => {
                     package_name: packageName,
                     app_url: appUrl,
                     icon_url: iconUrl,
-                    permissions: permissions
+                    use_camera: permissions.camera,
+                    use_mic: permissions.mic,
+                    use_location: permissions.location,
+                    use_files: permissions.files,
+                    use_notifications: permissions.notify, // Added notifications
+                    enable_zoom: customizations.enableZoom, // Added zoom
+                    enable_text_selection: customizations.enableTextSelection, // Added text selection
+                    enable_splash_screen: customizations.enableSplashScreen // Added splash screen
                 }
             },
             {
