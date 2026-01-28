@@ -110,7 +110,7 @@ app.get('/api/status/:requestId', async (req, res) => {
     try {
         // Fetch recent repository_dispatch workflow runs
         const runsResponse = await axios.get(
-            `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?event=repository_dispatch&per_page=20`, // Fetch more runs to increase chances
+            `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?event=repository_dispatch&per_page=100`, // Increased per_page to 100
             { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } }
         );
 
@@ -131,7 +131,7 @@ app.get('/api/status/:requestId', async (req, res) => {
         if (foundRun) {
             res.json({
                 status: foundRun.status, // queued, in_progress, completed
-                conclusion: foundRun.conclusion, // success, failure
+                conclusion: foundRun.conclusion, // success, failure, cancelled
                 github_run_id: foundRun.id // Return the actual GitHub run ID
             });
         } else {
