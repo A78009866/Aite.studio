@@ -34,6 +34,23 @@ if (!REPO_OWNER || !REPO_NAME) {
     console.error("⚠️ تحذير: REPO_OWNER أو REPO_NAME غير موجودين! لن تتمكن من بدء عمليات بناء GitHub Actions.");
 }
 
+// Helper function to get the release download URL from GitHub
+async function getReleaseDownloadUrl(runId, repoOwner, repoName, githubToken) {
+    try {
+        const releaseTag = `build-${runId}`;
+        const releasesResponse = await axios.get(
+            `https://api.github.com/repos/${repoOwner}/${repoName}/releases/tags/${releaseTag}`,
+            { headers: { 'Authorization': `token ${githubToken}` } }
+        );
+        const release = releasesResponse.data;
+        const asset = release.assets.find(a => a.name === 'app-debug.apk');
+        return asset ? asset.browser_download_url : null;
+    } catch (error) {
+        console.error(`Error fetching release for run ID ${runId}:`, error.message);
+        return null;
+    }
+}
+
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -43,7 +60,7 @@ app.get('/', (req, res) => {
 app.post('/api/build', async (req, res) => {
     const { appName, packageName, appUrl, iconBase64, permissions, customizations } = req.body;
 
-    if (!appName || !packageName || !appUrl || !iconBase64) {
+    if (!appName || !packageName || !appUrl || !iconBase66) {
         return res.status(400).json({ error: 'بيانات ناقصة: اسم التطبيق، معرف الحزمة، رابط الموقع، أو الأيقونة مفقودة.' });
     }
     if (!GITHUB_TOKEN || !REPO_OWNER || !REPO_NAME) {
@@ -129,14 +146,19 @@ app.get('/api/status/:requestId', async (req, res) => {
         }
 
         if (foundRun) {
+            let downloadUrl = null;
+            if (foundRun.status === 'completed' && foundRun.conclusion === 'success') {
+                downloadUrl = await getReleaseDownloadUrl(foundRun.id, REPO_OWNER, REPO_NAME, GITHUB_TOKEN);
+            }
             res.json({
                 status: foundRun.status, // queued, in_progress, completed
                 conclusion: foundRun.conclusion, // success, failure, cancelled
-                github_run_id: foundRun.id // Return the actual GitHub run ID
+                github_run_id: foundRun.id, // Return the actual GitHub run ID
+                download_url: downloadUrl // Add the download URL here
             });
         } else {
             // If no matching run is found yet, assume it's queued or not started
-            res.json({ status: 'queued', conclusion: null, github_run_id: null });
+            res.json({ status: 'queued', conclusion: null, github_run_id: null, download_url: null });
         }
 
     } catch (error) {
