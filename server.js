@@ -24,7 +24,15 @@ const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const REPO_OWNER = process.env.REPO_OWNER;
 const REPO_NAME = process.env.REPO_NAME;
 
-if (!GITHUB_TOKEN) console.error("⚠️ تحذير: GITHUB_TOKEN غير موجود!");
+if (!GITHUB_TOKEN) {
+    console.error("⚠️ تحذير: GITHUB_TOKEN غير موجود! لن تتمكن من بدء عمليات بناء GitHub Actions.");
+    // يمكنك اختيار إيقاف السيرفر أو التعامل مع هذا بشكل مختلف
+    // process.exit(1); 
+}
+if (!REPO_OWNER || !REPO_NAME) {
+    console.error("⚠️ تحذير: REPO_OWNER أو REPO_NAME غير موجودين! لن تتمكن من بدء عمليات بناء GitHub Actions.");
+}
+
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -32,10 +40,13 @@ app.get('/', (req, res) => {
 
 // --- API: طلب البناء ---
 app.post('/api/build', async (req, res) => {
-    const { appName, packageName, appUrl, iconBase64, permissions, customizations } = req.body; // Added customizations
+    const { appName, packageName, appUrl, iconBase64, permissions, customizations } = req.body;
 
     if (!appName || !packageName || !appUrl || !iconBase64) {
-        return res.status(400).json({ error: 'بيانات ناقصة' });
+        return res.status(400).json({ error: 'بيانات ناقصة: اسم التطبيق، معرف الحزمة، رابط الموقع، أو الأيقونة مفقودة.' });
+    }
+    if (!GITHUB_TOKEN || !REPO_OWNER || !REPO_NAME) {
+        return res.status(500).json({ error: 'خطأ في إعدادات الخادم: GITHUB_TOKEN أو REPO_OWNER أو REPO_NAME غير مضبوطة.' });
     }
 
     try {
@@ -59,14 +70,14 @@ app.post('/api/build', async (req, res) => {
                     package_name: packageName,
                     app_url: appUrl,
                     icon_url: iconUrl,
-                    use_camera: permissions.camera,
-                    use_mic: permissions.mic,
-                    use_location: permissions.location,
-                    use_files: permissions.files,
-                    use_notifications: permissions.notify, // Added notifications
-                    enable_zoom: customizations.enableZoom, // Added zoom
-                    enable_text_selection: customizations.enableTextSelection, // Added text selection
-                    enable_splash_screen: customizations.enableSplashScreen // Added splash screen
+                    use_camera: permissions.camera ? "true" : "false",
+                    use_mic: permissions.mic ? "true" : "false",
+                    use_location: permissions.location ? "true" : "false",
+                    use_files: permissions.files ? "true" : "false",
+                    use_notifications: permissions.notify ? "true" : "false",
+                    enable_zoom: customizations.enableZoom ? "true" : "false",
+                    enable_text_selection: customizations.enableTextSelection ? "true" : "false",
+                    enable_splash_screen: customizations.enableSplashScreen ? "true" : "false"
                 }
             },
             {
@@ -78,32 +89,35 @@ app.post('/api/build', async (req, res) => {
         );
 
         // ج. انتظار قليل والحصول على Run ID الخاص بهذه العملية تحديداً
-        // ننتظر 3 ثواني لضمان أن GitHub قد أنشأ العملية في القائمة
         setTimeout(async () => {
-    try {
-        // جلب آخر 5 عمليات بناء للتأكد من إيجاد العملية الصحيحة
-        const runs = await axios.get(
-            `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?event=repository_dispatch&per_page=5`,
-            { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } }
-        );
-        
-        // البحث عن العملية التي تحتوي على اسم التطبيق في العنوان أو التي بدأت الآن
-        // سنعتمد على أول عملية في القائمة لأنها الأحدث التي أطلقها السيرفر قبل 3 ثوانٍ
-        if (runs.data.workflow_runs.length > 0) {
-            const runId = runs.data.workflow_runs[0].id;
-            console.log(`🆔 تم تخصيص Run ID فريد لطلبك: ${runId}`);
-            res.json({ success: true, run_id: runId });
-        } else {
-            res.status(500).json({ error: "لم يتم العثور على العملية، حاول مجدداً" });
-        }
-    } catch (err) {
-        res.status(500).json({ error: "فشل في تتبع العملية" });
-    }
-}, 4000); // زيادة وقت التأخير لـ 4 ثوانٍ لضمان استجابة GitHub
+            try {
+                const runs = await axios.get(
+                    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?event=repository_dispatch&per_page=5`,
+                    { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } }
+                );
+                
+                if (runs.data.workflow_runs.length > 0) {
+                    const runId = runs.data.workflow_runs[0].id;
+                    console.log(`🆔 تم تخصيص Run ID فريد لطلبك: ${runId}`);
+                    res.json({ success: true, run_id: runId });
+                } else {
+                    res.status(500).json({ error: "لم يتم العثور على العملية، حاول مجدداً" });
+                }
+            } catch (err) {
+                console.error("فشل في تتبع العملية بعد الإرسال:", err.message);
+                res.status(500).json({ error: "فشل في تتبع العملية" });
+            }
+        }, 4000);
 
     } catch (error) {
-        console.error("❌ Error:", error.message);
-        res.status(500).json({ error: "فشل المعالجة" });
+        console.error("❌ Error during build request:", error.message);
+        if (error.response) {
+            console.error("GitHub API Response Status:", error.response.status);
+            console.error("GitHub API Response Data:", error.response.data);
+            res.status(error.response.status).json({ error: `فشل المعالجة: ${error.response.data.message || error.message}` });
+        } else {
+            res.status(500).json({ error: "فشل المعالجة: " + error.message });
+        }
     }
 });
 
