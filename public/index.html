@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <style>
-        /* التنسيقات (CSS) كما هي مع إضافة أزرار جديدة */
+        /* التنسيقات (CSS) كما هي */
         :root { --bg-dark: #0a0a0a; --bg-card: #141414; --primary: #00E676; --danger: #ff4444; --text-main: #ffffff; --text-muted: #888888; --border: #333333; --font-ar: 'Cairo', sans-serif; --font-en: 'Outfit', sans-serif; }
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
         body { font-family: var(--font-ar); background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
@@ -102,13 +102,6 @@
         .toast.show { opacity: 1; bottom: 45px; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         footer { text-align: center; padding: 3rem; color: #333; font-size: 0.9rem; border-top: 1px solid #1a1a1a; margin-top: 2rem; }
-        
-        /* قسم التخصيصات الجديد */
-        .customization-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; margin-bottom: 1.5rem; }
-        .customization-grid-full { grid-template-columns: 1fr; }
-        .toggle-container.with-description { flex-direction: column; align-items: flex-start; gap: 8px; }
-        .toggle-description { font-size: 0.85rem; color: #888; margin-top: 3px; }
-        .feature-badge { background: rgba(0, 230, 118, 0.1); color: var(--primary); border: 1px solid var(--primary); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; margin-top: 5px; display: inline-block; }
     </style>
 </head>
 <body>
@@ -188,7 +181,6 @@
 
         <div class="dashboard-tabs">
             <button class="tab-btn active" onclick="switchTab('build')" data-i18n="createTab">إنشاء تطبيق</button>
-            <button class="tab-btn" onclick="switchTab('customization')" data-i18n="customizationTab">التخصيصات المتقدمة</button>
             <button class="tab-btn" onclick="switchTab('myApps')" data-i18n="myAppsTab">تطبيقاتي السابقة</button>
         </div>
 
@@ -258,105 +250,6 @@
             </div>
         </div>
 
-        <div id="customizationView" class="view-section">
-            <div class="main-container">
-                <div class="config-panel">
-                    <h2 data-i18n="customizationTitle">التخصيصات المتقدمة</h2>
-                    <p class="subtitle" data-i18n="customizationSubtitle">تحكم في سلوك التطبيق وواجهة المستخدم</p>
-                    
-                    <div class="customization-grid">
-                        <div class="toggle-container with-description">
-                            <div style="display:flex; justify-content:space-between; width:100%;">
-                                <span class="toggle-label" data-i18n="customTextSelection">منع تحديد النص</span>
-                                <label class="switch"><input type="checkbox" id="customTextSelect"><span class="slider"></span></label>
-                            </div>
-                            <div class="toggle-description" data-i18n="customTextSelectionDesc">يمنع المستخدم من تحديد ونسخ النص داخل التطبيق</div>
-                        </div>
-                        
-                        <div class="toggle-container with-description">
-                            <div style="display:flex; justify-content:space-between; width:100%;">
-                                <span class="toggle-label" data-i18n="customZoom">تفعيل الزوم</span>
-                                <label class="switch"><input type="checkbox" id="customZoomEnable" checked><span class="slider"></span></label>
-                            </div>
-                            <div class="toggle-description" data-i18n="customZoomDesc">السماح للمستخدم بتكبير/تصغير الصفحة باللمس</div>
-                        </div>
-                    </div>
-                    
-                    <div class="customization-grid customization-grid-full">
-                        <div class="toggle-container with-description">
-                            <div style="display:flex; justify-content:space-between; width:100%;">
-                                <span class="toggle-label" data-i18n="customFullscreen">ملء الشاشة</span>
-                                <label class="switch"><input type="checkbox" id="customFullscreen" checked><span class="slider"></span></label>
-                            </div>
-                            <div class="toggle-description" data-i18n="customFullscreenDesc">جعل التطبيق يملأ الشاشة بالكامل (إخفاء شريط الحالة)</div>
-                        </div>
-                        
-                        <div class="toggle-container with-description">
-                            <div style="display:flex; justify-content:space-between; width:100%;">
-                                <span class="toggle-label" data-i18n="customExternalLinks">فتح الروابط الخارجية</span>
-                                <label class="switch"><input type="checkbox" id="customExternalLinks" checked><span class="slider"></span></label>
-                            </div>
-                            <div class="toggle-description" data-i18n="customExternalLinksDesc">فتح الروابط الخارجية في المتصفح بدلاً من داخل التطبيق</div>
-                            <div class="feature-badge">جديد</div>
-                        </div>
-                        
-                        <div class="toggle-container with-description">
-                            <div style="display:flex; justify-content:space-between; width:100%;">
-                                <span class="toggle-label" data-i18n="customVibration">اهتزاز الإشعارات</span>
-                                <label class="switch"><input type="checkbox" id="customVibration" checked><span class="slider"></span></label>
-                            </div>
-                            <div class="toggle-description" data-i18n="customVibrationDesc">تفعيل الاهتزاز عند استقبال الإشعارات</div>
-                            <div class="feature-badge">جديد</div>
-                        </div>
-                    </div>
-                    
-                    <div style="background: #1a1a1a; padding: 20px; border-radius: 12px; margin-top: 20px; border: 1px solid #333;">
-                        <h4 style="color: var(--primary); margin-bottom: 10px;">ملاحظات هامة:</h4>
-                        <ul style="color: #888; font-size: 0.9rem; padding-right: 15px;">
-                            <li data-i18n="note1">هذه التخصيصات ستؤثر على تجربة المستخدم النهائية</li>
-                            <li data-i18n="note2">"منع تحديد النص" قد يؤثر على بعض الوظائف داخل الموقع</li>
-                            <li data-i18n="note3">"فتح الروابط الخارجية" يتطلب تثبيت متصفح في الجهاز</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="preview-panel">
-                    <div class="phone-frame">
-                        <div class="status-bar" dir="ltr">
-                            <span id="phoneTime2">12:00</span>
-                            <div style="display:flex; gap:6px; opacity: 0.8;"><i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-full"></i></div>
-                        </div>
-                        <div class="screen">
-                            <div style="text-align: center; padding: 20px;">
-                                <div style="font-size: 3rem; color: var(--primary); margin-bottom: 20px;">
-                                    <i class="fa-solid fa-sliders"></i>
-                                </div>
-                                <h3 style="color: white; margin-bottom: 10px;" data-i18n="customDemoTitle">معاينة التخصيصات</h3>
-                                <p style="color: #888; font-size: 0.9rem; line-height: 1.5;" data-i18n="customDemoDesc">
-                                    عند تفعيل هذه الإعدادات، ستظهر النتيجة في التطبيق النهائي. يمكنك تجربة مختلف الخيارات للحصول على أفضل تجربة مستخدم.
-                                </p>
-                                
-                                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 30px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px;">
-                                    <div style="display: flex; justify-content: space-between;">
-                                        <span style="color: #ccc;" data-i18n="demoTextSelect">تحديد النص:</span>
-                                        <span id="demoTextSelect" style="color: var(--primary);">مسموح</span>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between;">
-                                        <span style="color: #ccc;" data-i18n="demoZoom">الزووم:</span>
-                                        <span id="demoZoom" style="color: var(--primary);">مفعل</span>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between;">
-                                        <span style="color: #ccc;" data-i18n="demoFullscreen">ملء الشاشة:</span>
-                                        <span id="demoFullscreen" style="color: var(--primary);">مفعل</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div id="myAppsView" class="view-section">
             <div id="appsList" class="apps-grid">
                 <p style="color:#888; width:100%; text-align:center;">جاري تحميل تطبيقاتك...</p>
@@ -377,6 +270,7 @@
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
         import { getDatabase, ref, push, onValue, remove, set } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
+        // Config Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAN-9qBeL51nwpctJw9rSQYzz1C7dDRf1E",
             authDomain: "world-3212f.firebaseapp.com",
@@ -398,340 +292,36 @@
         let currentEditingKey = null;
         let appToDeleteKey = null;
 
-        // الترجمة المحدثة مع قسم التخصيصات
+        // Translations (Updated with Notification)
         const translations = {
             ar: { 
                 dir: "rtl", title: "أنشئ تطبيقك الخاص", subtitle: "حوّل موقعك الإلكتروني إلى تطبيق Android احترافي.", 
                 appNameLabel: "اسم التطبيق", appNamePlaceholder: "اسم تطبيقك", appUrlLabel: "رابط الموقع", 
                 packageLabel: "معرف الحزمة", permsLabel: "أذونات التطبيق", permCam: "الكاميرا", permMic: "الميكروفون",
-                permLoc: "الموقع الجغرافي", permFile: "رفع الملفات", permNotify: "الإشعارات", iconLabel: "أيقونة التطبيق", 
-                uploadText: "اضغط لرفع الأيقونة", btnBuild: "بدء عملية البناء", btnUpdate: "حفظ وتحديث التطبيق", 
-                statusTitle: "حالة البناء:", status_q: "في الانتظار...", status_p: "جاري البناء (3-5 دقائق)...",
+                permLoc: "الموقع الجغرافي", permFile: "رفع الملفات", permNotify: "الإشعارات", iconLabel: "أيقونة التطبيق", uploadText: "اضغط لرفع الأيقونة",
+                btnBuild: "بدء عملية البناء", btnUpdate: "حفظ وتحديث التطبيق", statusTitle: "حالة البناء:", status_q: "في الانتظار...", status_p: "جاري البناء (3-5 دقائق)...",
                 status_s: "تم بنجاح!", status_f: "فشلت العملية", download_btn: "تحميل APK", selectLang: "اختر اللغة",
-                footerRights: "© 2026 جميع الحقوق محفوظة لشركة Aite.studio.", createTab: "إنشاء تطبيق", 
-                myAppsTab: "تطبيقاتي السابقة", customizationTab: "التخصيصات المتقدمة",
+                footerRights: "© 2026 جميع الحقوق محفوظة لشركة Aite.studio.", createTab: "إنشاء تطبيق", myAppsTab: "تطبيقاتي السابقة",
                 logout: "خروج", toast_no_icon: "يرجى رفع أيقونة", preview_default: "اسم التطبيق",
-                delete_title: "حذف التطبيق؟", delete_desc: "هل أنت متأكد من حذف هذا التطبيق نهائياً؟", 
-                delete_success: "تم الحذف بنجاح", edit_mode_title: "تعديل التطبيق: ",
-                
-                // قسم التخصيصات الجديد
-                customizationTitle: "التخصيصات المتقدمة",
-                customizationSubtitle: "تحكم في سلوك التطبيق وواجهة المستخدم",
-                customTextSelection: "منع تحديد النص",
-                customTextSelectionDesc: "يمنع المستخدم من تحديد ونسخ النص داخل التطبيق",
-                customZoom: "تفعيل الزوم",
-                customZoomDesc: "السماح للمستخدم بتكبير/تصغير الصفحة باللمس",
-                customFullscreen: "ملء الشاشة",
-                customFullscreenDesc: "جعل التطبيق يملأ الشاشة بالكامل (إخفاء شريط الحالة)",
-                customExternalLinks: "فتح الروابط الخارجية",
-                customExternalLinksDesc: "فتح الروابط الخارجية في المتصفح بدلاً من داخل التطبيق",
-                customVibration: "اهتزاز الإشعارات",
-                customVibrationDesc: "تفعيل الاهتزاز عند استقبال الإشعارات",
-                note1: "هذه التخصيصات ستؤثر على تجربة المستخدم النهائية",
-                note2: "\"منع تحديد النص\" قد يؤثر على بعض الوظائف داخل الموقع",
-                note3: "\"فتح الروابط الخارجية\" يتطلب تثبيت متصفح في الجهاز",
-                customDemoTitle: "معاينة التخصيصات",
-                customDemoDesc: "عند تفعيل هذه الإعدادات، ستظهر النتيجة في التطبيق النهائي. يمكنك تجربة مختلف الخيارات للحصول على أفضل تجربة مستخدم.",
-                demoTextSelect: "تحديد النص:",
-                demoZoom: "الزووم:",
-                demoFullscreen: "ملء الشاشة:"
+                delete_title: "حذف التطبيق؟", delete_desc: "هل أنت متأكد من حذف هذا التطبيق نهائياً؟", delete_success: "تم الحذف بنجاح", 
+                edit_mode_title: "تعديل التطبيق: "
             },
             en: { 
                 dir: "ltr", title: "Create Your App", subtitle: "Convert your website into a pro Android App.", 
                 appNameLabel: "App Name", appNamePlaceholder: "Your App Name", appUrlLabel: "Website URL", 
                 packageLabel: "Package ID", permsLabel: "App Permissions", permCam: "Camera", permMic: "Microphone",
-                permLoc: "Location", permFile: "File Upload", permNotify: "Notifications", iconLabel: "App Icon", 
-                uploadText: "Click to upload icon", btnBuild: "Start Building", btnUpdate: "Save & Update App", 
-                statusTitle: "Build Status:", status_q: "Queued...", status_p: "Building (3-5 mins)...",
-                status_s: "Build Success!", status_f: "Build Failed", download_btn: "Download APK", 
-                selectLang: "Select Language", footerRights: "© 2026 Aite.studio. All rights reserved.", 
-                createTab: "Create App", myAppsTab: "My Apps", customizationTab: "Advanced Customization",
+                permLoc: "Location", permFile: "File Upload", permNotify: "Notifications", iconLabel: "App Icon", uploadText: "Click to upload icon",
+                btnBuild: "Start Building", btnUpdate: "Save & Update App", statusTitle: "Build Status:", status_q: "Queued...", status_p: "Building (3-5 mins)...",
+                status_s: "Build Success!", status_f: "Build Failed", download_btn: "Download APK", selectLang: "Select Language",
+                footerRights: "© 2026 Aite.studio. All rights reserved.", createTab: "Create App", myAppsTab: "My Apps",
                 logout: "Logout", toast_no_icon: "Please upload an icon", preview_default: "App Name",
-                delete_title: "Delete App?", delete_desc: "Are you sure you want to delete this app permanently?", 
-                delete_success: "App deleted", edit_mode_title: "Editing App: ",
-                
-                // New Customization Section
-                customizationTitle: "Advanced Customization",
-                customizationSubtitle: "Control app behavior and user interface",
-                customTextSelection: "Disable Text Selection",
-                customTextSelectionDesc: "Prevent users from selecting and copying text inside the app",
-                customZoom: "Enable Zoom",
-                customZoomDesc: "Allow users to zoom in/out pages with touch",
-                customFullscreen: "Full Screen",
-                customFullscreenDesc: "Make the app fill the entire screen (hide status bar)",
-                customExternalLinks: "Open External Links",
-                customExternalLinksDesc: "Open external links in browser instead of inside the app",
-                customVibration: "Notification Vibration",
-                customVibrationDesc: "Enable vibration when receiving notifications",
-                note1: "These customizations will affect the final user experience",
-                note2: "\"Disable Text Selection\" may affect some website functions",
-                note3: "\"Open External Links\" requires browser installed on device",
-                customDemoTitle: "Customization Preview",
-                customDemoDesc: "When enabling these settings, the result will appear in the final app. You can try different options for the best user experience.",
-                demoTextSelect: "Text Selection:",
-                demoZoom: "Zoom:",
-                demoFullscreen: "Full Screen:"
+                delete_title: "Delete App?", delete_desc: "Are you sure you want to delete this app permanently?", delete_success: "App deleted",
+                edit_mode_title: "Editing App: "
             }
         };
         let currentLang = 'ar';
 
-        // دالة تحديث معاينة التخصيصات
-        function updateCustomizationPreview() {
-            const textSelect = document.getElementById('customTextSelect');
-            const zoom = document.getElementById('customZoomEnable');
-            const fullscreen = document.getElementById('customFullscreen');
-            
-            document.getElementById('demoTextSelect').innerText = 
-                textSelect.checked ? (currentLang === 'ar' ? 'ممنوع' : 'Disabled') : (currentLang === 'ar' ? 'مسموح' : 'Allowed');
-            document.getElementById('demoZoom').innerText = 
-                zoom.checked ? (currentLang === 'ar' ? 'مفعل' : 'Enabled') : (currentLang === 'ar' ? 'معطل' : 'Disabled');
-            document.getElementById('demoFullscreen').innerText = 
-                fullscreen.checked ? (currentLang === 'ar' ? 'مفعل' : 'Enabled') : (currentLang === 'ar' ? 'معطل' : 'Disabled');
-        }
-
-        // إضافة مستمعات لأزرار التخصيصات
-        document.addEventListener('DOMContentLoaded', function() {
-            const customizationInputs = ['customTextSelect', 'customZoomEnable', 'customFullscreen', 'customExternalLinks', 'customVibration'];
-            customizationInputs.forEach(id => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.addEventListener('change', updateCustomizationPreview);
-                }
-            });
-            
-            // تحديث الوقت في كلا الشاشتين
-            setInterval(() => { 
-                const now = new Date(); 
-                const timeStr = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
-                document.getElementById('phoneTime').innerText = timeStr;
-                document.getElementById('phoneTime2').innerText = timeStr;
-            }, 1000);
-            
-            updateCustomizationPreview();
-        });
-
-        // باقي الكود كما هو مع تعديل دالة setLanguage
-        window.setLanguage = function(lang) {
-            currentLang = lang;
-            const t = translations[lang];
-            document.documentElement.dir = t.dir;
-            document.getElementById('currentLangLabel').innerText = lang === 'ar' ? 'العربية' : 'English';
-            document.querySelectorAll('[data-i18n]').forEach(el => el.innerHTML = t[el.getAttribute('data-i18n')]);
-            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => el.placeholder = t[el.getAttribute('data-i18n-placeholder')]);
-            updateBtnText();
-            updatePreview();
-            updateCustomizationPreview();
-            document.getElementById('langModal').style.display = 'none';
-        }
-
-        // تعديل دالة حفظ التطبيق لتضمين التخصيصات
-        function saveAppToHistory(appData) {
-            if(!currentUser) return;
-            
-            // جمع بيانات التخصيصات
-            const customizationData = {
-                disableTextSelection: document.getElementById('customTextSelect').checked,
-                enableZoom: document.getElementById('customZoomEnable').checked,
-                fullScreen: document.getElementById('customFullscreen').checked,
-                openExternalLinks: document.getElementById('customExternalLinks').checked,
-                notificationVibration: document.getElementById('customVibration').checked
-            };
-            
-            const newData = {
-                appName: appData.appName,
-                packageName: appData.packageName,
-                appUrl: document.getElementById('appUrl').value,
-                permissions: appData.permissions,
-                customization: customizationData,
-                downloadLink: appData.downloadLink,
-                icon: appData.iconBase64,
-                timestamp: Date.now()
-            };
-            
-            if (currentEditingKey) {
-                set(ref(db, 'users/' + currentUser.uid + '/apps/' + currentEditingKey), newData).then(exitEditMode);
-            } else {
-                push(ref(db, 'users/' + currentUser.uid + '/apps'), newData);
-            }
-        }
-
-        // تعديل دالة تحميل التطبيقات لتضمين التخصيصات
-        window.editApp = function(key) {
-            const appData = userAppsData[key];
-            if(!appData) return;
-            currentEditingKey = key;
-            window.switchTab('build');
-            document.getElementById('pageTitle').innerText = translations[currentLang].edit_mode_title + appData.appName;
-            updateBtnText();
-            document.getElementById('cancelEditBtn').style.display = 'block';
-            document.getElementById('appName').value = appData.appName || '';
-            document.getElementById('packageName').value = appData.packageName || '';
-            document.getElementById('appUrl').value = appData.appUrl || '';
-            
-            if(appData.permissions) {
-                document.getElementById('permCamera').checked = appData.permissions.camera || false;
-                document.getElementById('permMic').checked = appData.permissions.mic || false;
-                document.getElementById('permLoc').checked = appData.permissions.location || false;
-                document.getElementById('permFile').checked = appData.permissions.files || false;
-                document.getElementById('permNotify').checked = appData.permissions.notify || false;
-            }
-            
-            // تحميل إعدادات التخصيصات إذا كانت موجودة
-            if(appData.customization) {
-                document.getElementById('customTextSelect').checked = appData.customization.disableTextSelection || false;
-                document.getElementById('customZoomEnable').checked = appData.customization.enableZoom || true;
-                document.getElementById('customFullscreen').checked = appData.customization.fullScreen || true;
-                document.getElementById('customExternalLinks').checked = appData.customization.openExternalLinks || true;
-                document.getElementById('customVibration').checked = appData.customization.notificationVibration || true;
-            }
-            
-            if(appData.icon) {
-                uploadedBase64 = appData.icon;
-                document.getElementById('previewIcon').src = appData.icon;
-                document.getElementById('previewIcon').style.display = 'block';
-                document.getElementById('iconPlaceholder').style.display = 'none';
-                document.getElementById('uploadText').innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:1.5rem;"></i>';
-            }
-            
-            updateCustomizationPreview();
-            window.updatePreview();
-        }
-
-        // تعديل دالة البناء لتضمين التخصيصات
-        document.getElementById('buildForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if(!uploadedBase64) return showToast(translations[currentLang].toast_no_icon);
-            
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            document.getElementById('statusContainer').style.display = 'block';
-            
-            const appName = document.getElementById('appName').value;
-            const packageName = document.getElementById('packageName').value;
-            
-            const perms = {
-                camera: document.getElementById('permCamera').checked,
-                mic: document.getElementById('permMic').checked,
-                location: document.getElementById('permLoc').checked,
-                files: document.getElementById('permFile').checked,
-                notify: document.getElementById('permNotify').checked
-            };
-            
-            const customization = {
-                disableTextSelection: document.getElementById('customTextSelect').checked,
-                enableZoom: document.getElementById('customZoomEnable').checked,
-                fullScreen: document.getElementById('customFullscreen').checked,
-                openExternalLinks: document.getElementById('customExternalLinks').checked,
-                notificationVibration: document.getElementById('customVibration').checked
-            };
-
-            try {
-                const res = await fetch('/api/build', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        appName: appName,
-                        packageName: packageName,
-                        appUrl: document.getElementById('appUrl').value,
-                        iconBase64: uploadedBase64,
-                        permissions: perms,
-                        customization: customization
-                    })
-                });
-                
-                const data = await res.json();
-                
-                if(res.ok && data.success) {
-                    startMonitoring(appName, packageName, data.run_id, perms, customization);
-                } else { 
-                    showToast('خطأ: ' + (data.error || 'غير معروف')); 
-                    btn.disabled = false; 
-                }
-            } catch(err) { 
-                showToast('خطأ في الاتصال بالسيرفر'); 
-                console.error(err);
-                btn.disabled = false; 
-            }
-        });
-
-        // تعديل دالة startMonitoring لتضمين التخصيصات
-        async function startMonitoring(currentAppName, currentPkgName, runId, currentPerms, currentCustomization) {
-            const statusTxt = document.getElementById('currentStatus');
-            const bar = document.getElementById('progressBar');
-            const resultArea = document.getElementById('resultArea');
-            const t = translations[currentLang];
-            
-            if(pollingInterval) clearInterval(pollingInterval);
-
-            pollingInterval = setInterval(async () => {
-                try {
-                    const res = await fetch(`/api/status/${runId}`);
-                    const data = await res.json();
-
-                    if(data.status === 'queued') {
-                        statusTxt.innerText = t.status_q; bar.style.width = '20%';
-                    } else if(data.status === 'in_progress' || data.status === 'waiting') {
-                        statusTxt.innerText = t.status_p; bar.style.width = '65%';
-                    } else if(data.status === 'completed') {
-                        clearInterval(pollingInterval);
-                        document.getElementById('submitBtn').disabled = false;
-                        
-                        if(data.conclusion === 'success') {
-                            statusTxt.innerText = t.status_s; bar.style.width = '100%';
-                            
-                            const repoOwner = "A78009866";
-                            const repoName = "Aite.studio";
-                            const directLink = `https://github.com/${repoOwner}/${repoName}/releases/download/build-${runId}/app-debug.apk`;
-                            
-                            resultArea.innerHTML = `<a href="${directLink}" class="build-btn" style="background:var(--primary); color:black; text-decoration:none; margin-top: 10px;"><i class="fa-solid fa-cloud-arrow-down"></i> ${t.download_btn}</a>`;
-                            
-                            saveAppToHistory({
-                                appName: currentAppName,
-                                packageName: currentPkgName,
-                                permissions: currentPerms,
-                                customization: currentCustomization,
-                                downloadLink: directLink,
-                                iconBase64: uploadedBase64
-                            });
-
-                        } else {
-                            statusTxt.innerText = t.status_f; bar.style.background = '#ff4444';
-                        }
-                    }
-                } catch(e) { console.error(e); }
-            }, 6000);
-        }
-
-        // إضافة دالة التبديل بين التبويبات الجديدة
-        window.switchTab = function(tabName) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-            
-            if(tabName === 'build') {
-                document.getElementById('buildView').classList.add('active');
-                document.querySelectorAll('.tab-btn')[0].classList.add('active');
-            } else if(tabName === 'customization') {
-                document.getElementById('customizationView').classList.add('active');
-                document.querySelectorAll('.tab-btn')[1].classList.add('active');
-                if(currentEditingKey) exitEditMode();
-            } else {
-                document.getElementById('myAppsView').classList.add('active');
-                document.querySelectorAll('.tab-btn')[2].classList.add('active');
-                if(currentEditingKey) exitEditMode();
-            }
-        }
-
-        // باقي الدوال كما هي
-        window.toggleUserMenu = function() { document.getElementById('userMenu').classList.toggle('show'); }
-        window.addEventListener('click', function(e) {
-            if (!document.querySelector('.user-dropdown').contains(e.target)) document.getElementById('userMenu').classList.remove('show');
-        });
-        window.openLangModal = function() { document.getElementById('langModal').style.display = 'flex'; }
-        window.closeLangModal = function(e) { if(e.target.id === 'langModal') document.getElementById('langModal').style.display = 'none'; }
-        
-        window.showToast = function(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 4000); }
-        
-        // Auth Listeners (كما هي)
+        // Auth Listeners
         document.getElementById('loginBtn').addEventListener('click', () => {
             signInWithPopup(auth, provider).catch((error) => showToast("Error: " + error.message));
         });
@@ -752,6 +342,134 @@
                 document.getElementById('appContent').style.display = 'none';
             }
         });
+
+        // UI Functions (Menu, Lang, Modals)
+        window.toggleUserMenu = function() { document.getElementById('userMenu').classList.toggle('show'); }
+        window.addEventListener('click', function(e) {
+            if (!document.querySelector('.user-dropdown').contains(e.target)) document.getElementById('userMenu').classList.remove('show');
+        });
+        window.openLangModal = function() { document.getElementById('langModal').style.display = 'flex'; }
+        window.closeLangModal = function(e) { if(e.target.id === 'langModal') document.getElementById('langModal').style.display = 'none'; }
+        
+        window.setLanguage = function(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+            document.documentElement.dir = t.dir;
+            document.getElementById('currentLangLabel').innerText = lang === 'ar' ? 'العربية' : 'English';
+            document.querySelectorAll('[data-i18n]').forEach(el => el.innerHTML = t[el.getAttribute('data-i18n')]);
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => el.placeholder = t[el.getAttribute('data-i18n-placeholder')]);
+            updateBtnText();
+            updatePreview();
+            document.getElementById('langModal').style.display = 'none';
+        }
+
+        function updateBtnText() {
+            const btnSpan = document.getElementById('btnText');
+            btnSpan.innerText = currentEditingKey ? translations[currentLang].btnUpdate : translations[currentLang].btnBuild;
+        }
+
+        // Firebase Data
+        function loadUserApps(userId) {
+            const appsRef = ref(db, 'users/' + userId + '/apps');
+            const appsListEl = document.getElementById('appsList');
+
+            onValue(appsRef, (snapshot) => {
+                appsListEl.innerHTML = '';
+                const data = snapshot.val();
+                
+                if (!data) {
+                    appsListEl.innerHTML = `<p style="color:#888; grid-column: 1/-1; text-align:center;">${currentLang === 'ar' ? 'لم تقم بإنشاء أي تطبيقات بعد.' : 'No apps created yet.'}</p>`;
+                    return;
+                }
+                userAppsData = data;
+                Object.entries(data).reverse().forEach(([key, app]) => {
+                    const card = document.createElement('div');
+                    card.className = 'app-card';
+                    card.innerHTML = `
+                        <div class="card-actions">
+                            <button class="action-btn btn-delete" onclick="window.askDelete('${key}')"><i class="fa-solid fa-xmark"></i></button>
+                            <button class="action-btn btn-edit" onclick="window.editApp('${key}')"><i class="fa-solid fa-pen"></i></button>
+                        </div>
+                        <img src="${app.icon || 'https://via.placeholder.com/150'}" alt="Icon">
+                        <h3>${app.appName}</h3>
+                        <p>${app.packageName}</p>
+                        <a href="${app.downloadLink}" class="download-btn-small" target="_blank"><i class="fa-solid fa-cloud-arrow-down"></i> ${translations[currentLang].download_btn}</a>
+                    `;
+                    appsListEl.appendChild(card);
+                });
+            });
+        }
+
+        function saveAppToHistory(appData) {
+            if(!currentUser) return;
+            const newData = {
+                appName: appData.appName,
+                packageName: appData.packageName,
+                appUrl: document.getElementById('appUrl').value,
+                permissions: appData.permissions,
+                downloadLink: appData.downloadLink,
+                icon: appData.iconBase64,
+                timestamp: Date.now()
+            };
+            if (currentEditingKey) {
+                set(ref(db, 'users/' + currentUser.uid + '/apps/' + currentEditingKey), newData).then(exitEditMode);
+            } else {
+                push(ref(db, 'users/' + currentUser.uid + '/apps'), newData);
+            }
+        }
+
+        // Deletion Logic
+        window.askDelete = function(key) { appToDeleteKey = key; document.getElementById('deleteModal').style.display = 'flex'; }
+        window.closeDeleteModal = function() { document.getElementById('deleteModal').style.display = 'none'; appToDeleteKey = null; }
+        window.confirmDelete = function() {
+            if (appToDeleteKey && currentUser) {
+                remove(ref(db, 'users/' + currentUser.uid + '/apps/' + appToDeleteKey)).then(() => showToast(translations[currentLang].delete_success));
+            }
+            window.closeDeleteModal();
+        }
+
+        // Edit Logic (Updated for Notify)
+        window.editApp = function(key) {
+            const appData = userAppsData[key];
+            if(!appData) return;
+            currentEditingKey = key;
+            window.switchTab('build');
+            document.getElementById('pageTitle').innerText = translations[currentLang].edit_mode_title + appData.appName;
+            updateBtnText();
+            document.getElementById('cancelEditBtn').style.display = 'block';
+            document.getElementById('appName').value = appData.appName || '';
+            document.getElementById('packageName').value = appData.packageName || '';
+            document.getElementById('appUrl').value = appData.appUrl || '';
+            if(appData.permissions) {
+                document.getElementById('permCamera').checked = appData.permissions.camera || false;
+                document.getElementById('permMic').checked = appData.permissions.mic || false;
+                document.getElementById('permLoc').checked = appData.permissions.location || false;
+                document.getElementById('permFile').checked = appData.permissions.files || false;
+                document.getElementById('permNotify').checked = appData.permissions.notify || false;
+            }
+            if(appData.icon) {
+                uploadedBase64 = appData.icon;
+                document.getElementById('previewIcon').src = appData.icon;
+                document.getElementById('previewIcon').style.display = 'block';
+                document.getElementById('iconPlaceholder').style.display = 'none';
+                document.getElementById('uploadText').innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:1.5rem;"></i>';
+            }
+            window.updatePreview();
+        }
+
+        window.exitEditMode = function() {
+            currentEditingKey = null;
+            document.getElementById('buildForm').reset();
+            document.getElementById('pageTitle').innerText = translations[currentLang].title;
+            document.getElementById('cancelEditBtn').style.display = 'none';
+            document.getElementById('previewIcon').style.display = 'none';
+            document.getElementById('iconPlaceholder').style.display = 'flex';
+            document.getElementById('uploadText').innerHTML = `<i class="fa-solid fa-cloud-arrow-up" style="font-size: 1.5rem; margin-bottom: 10px; display: block;"></i> ${translations[currentLang].uploadText}`;
+            uploadedBase64 = null;
+            updateBtnText();
+            window.updatePreview();
+        }
+
         // Image Cropper
         let uploadedBase64 = null;
         let cropper = null;
