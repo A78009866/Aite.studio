@@ -3,38 +3,33 @@ const axios = require('axios');
 const cors = require('cors');
 const path = require('path');
 const cloudinary = require('cloudinary').v2;
-const { v4: uuidv4 } = require('uuid'); // Import uuid
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 
-// زيادة حجم البيانات المسموح به لاستقبال الصور
+// زيادة حجم البيانات المسموح به لاستقبال الصور (ضروري للـ Base64)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 app.use(express.static('public'));
 
-// 1. إعدادات Cloudinary (كما طلبت)
+// 1. إعدادات Cloudinary
 cloudinary.config({ 
   cloud_name: 'duixjs8az', 
   api_key: '143978951428697', 
   api_secret: '9dX6eIvntdtGQIU7oXGMSRG9I2o' 
 });
 
-// 2. إعدادات GitHub (يجب أن تكون في Environment Variables في Vercel)
+// 2. إعدادات GitHub
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const REPO_OWNER = process.env.REPO_OWNER;
 const REPO_NAME = process.env.REPO_NAME;
 
-if (!GITHUB_TOKEN) {
-    console.error("⚠️ تحذير: GITHUB_TOKEN غير موجود! لن تتمكن من بدء عمليات بناء GitHub Actions.");
-    // يمكنك اختيار إيقاف السيرفر أو التعامل مع هذا بشكل مختلف
-    // process.exit(1); 
-}
-if (!REPO_OWNER || !REPO_NAME) {
-    console.error("⚠️ تحذير: REPO_OWNER أو REPO_NAME غير موجودين! لن تتمكن من بدء عمليات بناء GitHub Actions.");
+if (!GITHUB_TOKEN || !REPO_OWNER || !REPO_NAME) {
+    console.error("⚠️ تحذير: متغيرات البيئة الخاصة بـ GitHub مفقودة.");
 }
 
-// Helper function to get the release download URL from GitHub
+// دالة مساعدة لجلب رابط التحميل
 async function getReleaseDownloadUrl(runId, repoOwner, repoName, githubToken) {
     try {
         const releaseTag = `build-${runId}`;
@@ -46,11 +41,10 @@ async function getReleaseDownloadUrl(runId, repoOwner, repoName, githubToken) {
         const asset = release.assets.find(a => a.name === 'app-debug.apk');
         return asset ? asset.browser_download_url : null;
     } catch (error) {
-        console.error(`Error fetching release for run ID ${runId}:`, error.message);
+        // لا نطبع الخطأ هنا لتجنب إغراق السجلات، لأن الإصدار قد لا يكون جاهزاً بعد
         return null;
     }
 }
-
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -58,44 +52,49 @@ app.get('/', (req, res) => {
 
 // --- API: طلب البناء ---
 app.post('/api/build', async (req, res) => {
+    // استقبال البيانات
     const { appName, packageName, appUrl, iconBase64, permissions, customizations } = req.body;
 
-    if (!appName || !packageName || !appUrl || !iconBase66) {
+    // --- تصحيح الخطأ هنا: تم تغيير iconBase66 إلى iconBase64 ---
+    if (!appName || !packageName || !appUrl || !iconBase64) {
         return res.status(400).json({ error: 'بيانات ناقصة: اسم التطبيق، معرف الحزمة، رابط الموقع، أو الأيقونة مفقودة.' });
     }
-    if (!GITHUB_TOKEN || !REPO_OWNER || !REPO_NAME) {
-        return res.status(500).json({ error: 'خطأ في إعدادات الخادم: GITHUB_TOKEN أو REPO_OWNER أو REPO_NAME غير مضبوطة.' });
+
+    if (!GITHUB_TOKEN) {
+        return res.status(500).json({ error: 'خطأ في الخادم: GITHUB_TOKEN غير موجود.' });
     }
 
     try {
         console.log(`🚀 بدء طلب جديد لـ: ${appName}`);
 
         // أ. رفع الصورة إلى Cloudinary
+        // ملاحظة: Vercel قد يغلق الاتصال إذا استغرق الرفع أكثر من 10-60 ثانية
         const uploadRes = await cloudinary.uploader.upload(iconBase64, {
             folder: "app_icons",
-            resource_type: "image"
+            resource_type: "image",
+            transformation: [{ width: 512, height: 512, crop: "limit" }] // تحسين لتقليل الحجم
         });
+        
         const iconUrl = uploadRes.secure_url;
         console.log(`✅ تم رفع الصورة: ${iconUrl}`);
 
         // ب. إرسال أمر البناء لـ GitHub
-        // دمج الأذونات والتخصيصات في سلاسل نصية JSON لتقليل عدد الخصائص
         const permissionsJson = JSON.stringify(permissions);
         const customizationsJson = JSON.stringify(customizations);
-        const requestId = uuidv4(); // Generate a unique request ID
+        const requestId = uuidv4(); 
 
         await axios.post(
             `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/dispatches`,
             {
                 event_type: 'build-apk',
                 client_payload: {
-                    request_id: requestId, // Pass the unique request ID
+                    request_id: requestId,
                     app_name: appName,
                     package_name: packageName,
                     app_url: appUrl,
                     icon_url: iconUrl,
-                    permissions_json: permissionsJson, // دمج الأذونات
-                    customizations_json: customizationsJson // دمج التخصيصات
+                    permissions_json: permissionsJson,
+                    customizations_json: customizationsJson
                 }
             },
             {
@@ -107,26 +106,18 @@ app.post('/api/build', async (req, res) => {
         );
 
         console.log(`🆔 تم إرسال طلب البناء بمعرف: ${requestId}`);
-        res.json({ success: true, run_id: requestId }); // Return the request ID to the client
+        res.json({ success: true, run_id: requestId });
 
     } catch (error) {
         console.error("❌ Error during build request:", error.message);
-        if (error.response) {
-            console.error("GitHub API Response Status:", error.response.status);
-            console.error("GitHub API Response Data:", error.response.data);
-            res.status(error.response.status).json({ error: `فشل المعالجة: ${error.response.data.message || error.message}` });
-        } else {
-            res.status(500).json({ error: "فشل المعالجة: " + error.message });
-        }
+        res.status(500).json({ error: `فشل المعالجة: ${error.message}` });
     }
 });
 
-// --- API: فحص الحالة برقم العملية (Fixes the issue) ---
-// --- API: فحص الحالة برقم العملية (محسن لتجنب حظر GitHub) ---
+// --- API: فحص الحالة ---
 app.get('/api/status/:requestId', async (req, res) => {
     const { requestId } = req.params;
     try {
-        // 1. جلب آخر 5 عمليات فقط بدلاً من 100 لتقليل الضغط
         const runsResponse = await axios.get(
             `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?event=repository_dispatch&per_page=5`, 
             { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } }
@@ -134,24 +125,25 @@ app.get('/api/status/:requestId', async (req, res) => {
 
         let foundRun = null;
 
-        // 2. البحث الذكي
         for (const run of runsResponse.data.workflow_runs) {
-            // تحسين: إذا قمنا بتحديث ملف YML ليحتوي الاسم على ID، يمكننا التحقق من الاسم مباشرة دون جلب التفاصيل
-            // لكن سنبقي جلب التفاصيل لضمان العمل مع الكود القديم، ولكن لـ 5 عناصر فقط
+            // تحقق سريع من الاسم لتجنب جلب التفاصيل لكل عملية (تحسين للأداء)
+            // الاسم في YML هو: Build AppName (REQUEST_ID)
+            if (run.name && run.name.includes(requestId)) {
+                 foundRun = run;
+                 break;
+            }
             
+            // الطريقة القديمة (الاحتياطية) في حال لم يعمل التحقق من الاسم
             try {
                 const runDetailsResponse = await axios.get(
-                    run.url, // استخدام الرابط المباشر من الاستجابة
+                    run.url, 
                     { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } }
                 );
-                
-                const clientPayload = runDetailsResponse.data.client_payload;
-                if (clientPayload && clientPayload.request_id === requestId) {
+                if (runDetailsResponse.data.client_payload && runDetailsResponse.data.client_payload.request_id === requestId) {
                     foundRun = runDetailsResponse.data;
-                    break; // وجدنا العملية، توقف عن البحث فوراً
+                    break;
                 }
             } catch (innerError) {
-                console.warn(`Skipping run ${run.id} due to fetch error.`);
                 continue;
             }
         }
@@ -168,13 +160,12 @@ app.get('/api/status/:requestId', async (req, res) => {
                 download_url: downloadUrl
             });
         } else {
-            // لم يتم العثور عليها بعد (قد تكون في مرحلة المعالجة الأولية)
             res.json({ status: 'queued', conclusion: null, github_run_id: null, download_url: null });
         }
 
     } catch (error) {
-        console.error(`Error checking status for request ${requestId}:`, error.message);
-        // إرسال 200 مع حالة "معالجة" بدلاً من 500 لتجنب توقف العميل عن المحاولة في حالة وجود خطأ مؤقت
+        console.error(`Error checking status:`, error.message);
+        // نرسل حالة "قيد التقدم" لتجنب توقف واجهة المستخدم
         res.status(200).json({ status: 'in_progress', conclusion: null }); 
     }
 });
