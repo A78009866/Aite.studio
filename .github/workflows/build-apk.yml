@@ -1,4 +1,7 @@
 name: Aite Studio APK Builder
+# السطر التالي مهم جداً: سيجعل اسم العملية في GitHub يظهر كـ "Build AppName (ID)"
+run-name: Build ${{ github.event.client_payload.app_name }} (${{ github.event.client_payload.request_id }})
+
 on:
   repository_dispatch:
     types: [build-apk]
