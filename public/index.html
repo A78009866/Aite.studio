@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <style>
-        /* التنسيقات (CSS) كما هي بدون تغيير للحفاظ على التصميم */
+        /* التنسيقات (CSS) كما هي */
         :root { --bg-dark: #0a0a0a; --bg-card: #141414; --primary: #00E676; --danger: #ff4444; --text-main: #ffffff; --text-muted: #888888; --border: #333333; --font-ar: 'Cairo', sans-serif; --font-en: 'Outfit', sans-serif; }
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
         body { font-family: var(--font-ar); background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
@@ -206,6 +206,7 @@
                             <div class="toggle-container"><span class="toggle-label" data-i18n="permMic">الميكروفون</span><label class="switch"><input type="checkbox" id="permMic"><span class="slider"></span></label></div>
                             <div class="toggle-container"><span class="toggle-label" data-i18n="permLoc">الموقع الجغرافي</span><label class="switch"><input type="checkbox" id="permLoc"><span class="slider"></span></label></div>
                             <div class="toggle-container"><span class="toggle-label" data-i18n="permFile">رفع الملفات</span><label class="switch"><input type="checkbox" id="permFile"><span class="slider"></span></label></div>
+                            <div class="toggle-container"><span class="toggle-label" data-i18n="permNotify">الإشعارات</span><label class="switch"><input type="checkbox" id="permNotify"><span class="slider"></span></label></div>
                         </div>
                         
                         <label data-i18n="iconLabel">أيقونة التطبيق</label>
@@ -291,13 +292,13 @@
         let currentEditingKey = null;
         let appToDeleteKey = null;
 
-        // Translations (نفس السابقة)
+        // Translations (Updated with Notification)
         const translations = {
             ar: { 
                 dir: "rtl", title: "أنشئ تطبيقك الخاص", subtitle: "حوّل موقعك الإلكتروني إلى تطبيق Android احترافي.", 
                 appNameLabel: "اسم التطبيق", appNamePlaceholder: "اسم تطبيقك", appUrlLabel: "رابط الموقع", 
                 packageLabel: "معرف الحزمة", permsLabel: "أذونات التطبيق", permCam: "الكاميرا", permMic: "الميكروفون",
-                permLoc: "الموقع الجغرافي", permFile: "رفع الملفات", iconLabel: "أيقونة التطبيق", uploadText: "اضغط لرفع الأيقونة",
+                permLoc: "الموقع الجغرافي", permFile: "رفع الملفات", permNotify: "الإشعارات", iconLabel: "أيقونة التطبيق", uploadText: "اضغط لرفع الأيقونة",
                 btnBuild: "بدء عملية البناء", btnUpdate: "حفظ وتحديث التطبيق", statusTitle: "حالة البناء:", status_q: "في الانتظار...", status_p: "جاري البناء (3-5 دقائق)...",
                 status_s: "تم بنجاح!", status_f: "فشلت العملية", download_btn: "تحميل APK", selectLang: "اختر اللغة",
                 footerRights: "© 2026 جميع الحقوق محفوظة لشركة Aite.studio.", createTab: "إنشاء تطبيق", myAppsTab: "تطبيقاتي السابقة",
@@ -309,7 +310,7 @@
                 dir: "ltr", title: "Create Your App", subtitle: "Convert your website into a pro Android App.", 
                 appNameLabel: "App Name", appNamePlaceholder: "Your App Name", appUrlLabel: "Website URL", 
                 packageLabel: "Package ID", permsLabel: "App Permissions", permCam: "Camera", permMic: "Microphone",
-                permLoc: "Location", permFile: "File Upload", iconLabel: "App Icon", uploadText: "Click to upload icon",
+                permLoc: "Location", permFile: "File Upload", permNotify: "Notifications", iconLabel: "App Icon", uploadText: "Click to upload icon",
                 btnBuild: "Start Building", btnUpdate: "Save & Update App", statusTitle: "Build Status:", status_q: "Queued...", status_p: "Building (3-5 mins)...",
                 status_s: "Build Success!", status_f: "Build Failed", download_btn: "Download APK", selectLang: "Select Language",
                 footerRights: "© 2026 Aite.studio. All rights reserved.", createTab: "Create App", myAppsTab: "My Apps",
@@ -427,7 +428,7 @@
             window.closeDeleteModal();
         }
 
-        // Edit Logic
+        // Edit Logic (Updated for Notify)
         window.editApp = function(key) {
             const appData = userAppsData[key];
             if(!appData) return;
@@ -444,6 +445,7 @@
                 document.getElementById('permMic').checked = appData.permissions.mic || false;
                 document.getElementById('permLoc').checked = appData.permissions.location || false;
                 document.getElementById('permFile').checked = appData.permissions.files || false;
+                document.getElementById('permNotify').checked = appData.permissions.notify || false;
             }
             if(appData.icon) {
                 uploadedBase64 = appData.icon;
@@ -516,7 +518,8 @@
                 camera: document.getElementById('permCamera').checked,
                 mic: document.getElementById('permMic').checked,
                 location: document.getElementById('permLoc').checked,
-                files: document.getElementById('permFile').checked
+                files: document.getElementById('permFile').checked,
+                notify: document.getElementById('permNotify').checked
             };
 
             try {
@@ -574,14 +577,9 @@
                         if(data.conclusion === 'success') {
                             statusTxt.innerText = t.status_s; bar.style.width = '100%';
                             
-                            // رابط التحميل يعتمد على الـ ID لضمان الصحة
-                            // ملاحظة: تأكد أن ملف الـ workflow يقوم بإنشاء Release بنفس الـ run_id
-                            // (الكود الذي أرسلته لك سابقاً لملف yml يفعل ذلك: tag_name: build-${{ github.run_id }})
                             const repoOwner = "A78009866"; // استبدلها إذا تغير المالك
                             const repoName = "Aite.studio"; // استبدلها إذا تغير الاسم
                             
-                            // ملاحظة: السيرفر يعرف المالك والاسم، يمكننا تحسين هذا بجعل السيرفر يرجع الرابط
-                            // لكن للتبسيط سنستخدم الهيكل القياسي
                             const directLink = `https://github.com/${repoOwner}/${repoName}/releases/download/build-${runId}/app-debug.apk`;
                             
                             resultArea.innerHTML = `<a href="${directLink}" class="build-btn" style="background:var(--primary); color:black; text-decoration:none; margin-top: 10px;"><i class="fa-solid fa-cloud-arrow-down"></i> ${t.download_btn}</a>`;
