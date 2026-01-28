@@ -61,6 +61,10 @@ app.post('/api/build', async (req, res) => {
         console.log(`✅ تم رفع الصورة: ${iconUrl}`);
 
         // ب. إرسال أمر البناء لـ GitHub
+        // دمج الأذونات والتخصيصات في سلاسل نصية JSON لتقليل عدد الخصائص
+        const permissionsJson = JSON.stringify(permissions);
+        const customizationsJson = JSON.stringify(customizations);
+
         await axios.post(
             `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/dispatches`,
             {
@@ -70,14 +74,8 @@ app.post('/api/build', async (req, res) => {
                     package_name: packageName,
                     app_url: appUrl,
                     icon_url: iconUrl,
-                    use_camera: permissions.camera ? "true" : "false",
-                    use_mic: permissions.mic ? "true" : "false",
-                    use_location: permissions.location ? "true" : "false",
-                    use_files: permissions.files ? "true" : "false",
-                    use_notifications: permissions.notify ? "true" : "false",
-                    enable_zoom: customizations.enableZoom ? "true" : "false",
-                    enable_text_selection: customizations.enableTextSelection ? "true" : "false",
-                    enable_splash_screen: customizations.enableSplashScreen ? "true" : "false"
+                    permissions_json: permissionsJson, // دمج الأذونات
+                    customizations_json: customizationsJson // دمج التخصيصات
                 }
             },
             {
