@@ -208,6 +208,13 @@
                             <div class="toggle-container"><span class="toggle-label" data-i18n="permFile">رفع الملفات</span><label class="switch"><input type="checkbox" id="permFile"><span class="slider"></span></label></div>
                             <div class="toggle-container"><span class="toggle-label" data-i18n="permNotify">الإشعارات</span><label class="switch"><input type="checkbox" id="permNotify"><span class="slider"></span></label></div>
                         </div>
+
+                        <label data-i18n="customizationLabel" style="margin-top: 1.5rem;">تخصيصات إضافية</label>
+                        <div class="permissions-grid">
+                            <div class="toggle-container"><span class="toggle-label" data-i18n="customZoom">تمكين التكبير/التصغير</span><label class="switch"><input type="checkbox" id="enableZoom" checked><span class="slider"></span></label></div>
+                            <div class="toggle-container"><span class="toggle-label" data-i18n="customTextSelection">تمكين تحديد النص</span><label class="switch"><input type="checkbox" id="enableTextSelection" checked><span class="slider"></span></label></div>
+                            <div class="toggle-container"><span class="toggle-label" data-i18n="customSplashScreen">عرض شاشة البداية</span><label class="switch"><input type="checkbox" id="enableSplashScreen" checked><span class="slider"></span></label></div>
+                        </div>
                         
                         <label data-i18n="iconLabel">أيقونة التطبيق</label>
                         <div class="upload-box" onclick="document.getElementById('fileInput').click()">
@@ -292,13 +299,14 @@
         let currentEditingKey = null;
         let appToDeleteKey = null;
 
-        // Translations (Updated with Notification)
+        // Translations (Updated with Notification and new customizations)
         const translations = {
             ar: { 
                 dir: "rtl", title: "أنشئ تطبيقك الخاص", subtitle: "حوّل موقعك الإلكتروني إلى تطبيق Android احترافي.", 
                 appNameLabel: "اسم التطبيق", appNamePlaceholder: "اسم تطبيقك", appUrlLabel: "رابط الموقع", 
                 packageLabel: "معرف الحزمة", permsLabel: "أذونات التطبيق", permCam: "الكاميرا", permMic: "الميكروفون",
                 permLoc: "الموقع الجغرافي", permFile: "رفع الملفات", permNotify: "الإشعارات", iconLabel: "أيقونة التطبيق", uploadText: "اضغط لرفع الأيقونة",
+                customizationLabel: "تخصيصات إضافية", customZoom: "تمكين التكبير/التصغير", customTextSelection: "تمكين تحديد النص", customSplashScreen: "عرض شاشة البداية",
                 btnBuild: "بدء عملية البناء", btnUpdate: "حفظ وتحديث التطبيق", statusTitle: "حالة البناء:", status_q: "في الانتظار...", status_p: "جاري البناء (3-5 دقائق)...",
                 status_s: "تم بنجاح!", status_f: "فشلت العملية", download_btn: "تحميل APK", selectLang: "اختر اللغة",
                 footerRights: "© 2026 جميع الحقوق محفوظة لشركة Aite.studio.", createTab: "إنشاء تطبيق", myAppsTab: "تطبيقاتي السابقة",
@@ -311,6 +319,7 @@
                 appNameLabel: "App Name", appNamePlaceholder: "Your App Name", appUrlLabel: "Website URL", 
                 packageLabel: "Package ID", permsLabel: "App Permissions", permCam: "Camera", permMic: "Microphone",
                 permLoc: "Location", permFile: "File Upload", permNotify: "Notifications", iconLabel: "App Icon", uploadText: "Click to upload icon",
+                customizationLabel: "Additional Customizations", customZoom: "Enable Zoom", customTextSelection: "Enable Text Selection", customSplashScreen: "Show Splash Screen",
                 btnBuild: "Start Building", btnUpdate: "Save & Update App", statusTitle: "Build Status:", status_q: "Queued...", status_p: "Building (3-5 mins)...",
                 status_s: "Build Success!", status_f: "Build Failed", download_btn: "Download APK", selectLang: "Select Language",
                 footerRights: "© 2026 Aite.studio. All rights reserved.", createTab: "Create App", myAppsTab: "My Apps",
@@ -407,6 +416,7 @@
                 packageName: appData.packageName,
                 appUrl: document.getElementById('appUrl').value,
                 permissions: appData.permissions,
+                customizations: appData.customizations, // Save new customizations
                 downloadLink: appData.downloadLink,
                 icon: appData.iconBase64,
                 timestamp: Date.now()
@@ -428,7 +438,7 @@
             window.closeDeleteModal();
         }
 
-        // Edit Logic (Updated for Notify)
+        // Edit Logic (Updated for Notify and new customizations)
         window.editApp = function(key) {
             const appData = userAppsData[key];
             if(!appData) return;
@@ -447,6 +457,17 @@
                 document.getElementById('permFile').checked = appData.permissions.files || false;
                 document.getElementById('permNotify').checked = appData.permissions.notify || false;
             }
+            // Set new customization toggles
+            if(appData.customizations) {
+                document.getElementById('enableZoom').checked = appData.customizations.enableZoom || false;
+                document.getElementById('enableTextSelection').checked = appData.customizations.enableTextSelection || false;
+                document.getElementById('enableSplashScreen').checked = appData.customizations.enableSplashScreen || false;
+            } else { // Default values if not present in old data
+                document.getElementById('enableZoom').checked = true;
+                document.getElementById('enableTextSelection').checked = true;
+                document.getElementById('enableSplashScreen').checked = true;
+            }
+
             if(appData.icon) {
                 uploadedBase64 = appData.icon;
                 document.getElementById('previewIcon').src = appData.icon;
@@ -467,6 +488,10 @@
             document.getElementById('uploadText').innerHTML = `<i class="fa-solid fa-cloud-arrow-up" style="font-size: 1.5rem; margin-bottom: 10px; display: block;"></i> ${translations[currentLang].uploadText}`;
             uploadedBase64 = null;
             updateBtnText();
+            // Reset customization toggles to default
+            document.getElementById('enableZoom').checked = true;
+            document.getElementById('enableTextSelection').checked = true;
+            document.getElementById('enableSplashScreen').checked = true;
             window.updatePreview();
         }
 
@@ -514,12 +539,20 @@
             
             const appName = document.getElementById('appName').value;
             const packageName = document.getElementById('packageName').value;
+            const appUrl = document.getElementById('appUrl').value;
+
             const perms = {
                 camera: document.getElementById('permCamera').checked,
                 mic: document.getElementById('permMic').checked,
                 location: document.getElementById('permLoc').checked,
                 files: document.getElementById('permFile').checked,
                 notify: document.getElementById('permNotify').checked
+            };
+
+            const customizations = {
+                enableZoom: document.getElementById('enableZoom').checked,
+                enableTextSelection: document.getElementById('enableTextSelection').checked,
+                enableSplashScreen: document.getElementById('enableSplashScreen').checked
             };
 
             try {
@@ -530,9 +563,10 @@
                     body: JSON.stringify({
                         appName: appName,
                         packageName: packageName,
-                        appUrl: document.getElementById('appUrl').value,
+                        appUrl: appUrl,
                         iconBase64: uploadedBase64,
-                        permissions: perms
+                        permissions: perms,
+                        customizations: customizations // Pass new customizations
                     })
                 });
                 
@@ -540,7 +574,7 @@
                 
                 if(res.ok && data.success) {
                     // الأهم: نستلم Run ID فريد ونبدأ مراقبته
-                    startMonitoring(appName, packageName, data.run_id, perms);
+                    startMonitoring(appName, packageName, appUrl, data.run_id, perms, customizations);
                 } else { 
                     showToast('خطأ: ' + (data.error || 'غير معروف')); 
                     btn.disabled = false; 
@@ -552,53 +586,55 @@
             }
         });
 
-        async function startMonitoring(currentAppName, currentPkgName, runId, currentPerms) {
-    const statusTxt = document.getElementById('currentStatus');
-    const bar = document.getElementById('progressBar');
-    const resultArea = document.getElementById('resultArea');
-    const t = translations[currentLang];
-    
-    if(pollingInterval) clearInterval(pollingInterval);
+        async function startMonitoring(currentAppName, currentPkgName, currentAppUrl, runId, currentPerms, currentCustomizations) {
+            const statusTxt = document.getElementById('currentStatus');
+            const bar = document.getElementById('progressBar');
+            const resultArea = document.getElementById('resultArea');
+            const t = translations[currentLang];
+            
+            if(pollingInterval) clearInterval(pollingInterval);
 
-    pollingInterval = setInterval(async () => {
-        try {
-            const res = await fetch(`/api/status/${runId}`); // نراقب هذا الـ ID فقط
-            const data = await res.json();
+            pollingInterval = setInterval(async () => {
+                try {
+                    const res = await fetch(`/api/status/${runId}`); // نراقب هذا الـ ID فقط
+                    const data = await res.json();
 
-            if(data.status === 'completed') {
-                clearInterval(pollingInterval);
-                document.getElementById('submitBtn').disabled = false;
-                
-                if(data.conclusion === 'success') {
-                    statusTxt.innerText = t.status_s;
-                    bar.style.width = '100%';
-                    
-                    // توليد رابط التحميل الخاص بهذا الـ Run ID حصرياً
-                    const repoOwner = "A78009866"; 
-                    const repoName = "Aite.studio"; 
-                    const directLink = `https://github.com/${repoOwner}/${repoName}/releases/download/build-${runId}/app-debug.apk`;
-                    
-                    resultArea.innerHTML = `<a href="${directLink}" class="build-btn" style="background:var(--primary); color:black; text-decoration:none; margin-top: 10px;"><i class="fa-solid fa-cloud-arrow-down"></i> ${t.download_btn}</a>`;
-                    
-                    // حفظ في الهوية (History) بالرابط الصحيح
-                    saveAppToHistory({
-                        appName: currentAppName,
-                        packageName: currentPkgName,
-                        permissions: currentPerms,
-                        downloadLink: directLink,
-                        iconBase64: uploadedBase64
-                    });
-                } else {
-                    statusTxt.innerText = t.status_f;
-                    bar.style.background = '#ff4444';
-                }
-            } else if(data.status === 'in_progress') {
-                statusTxt.innerText = t.status_p;
-                bar.style.width = '65%';
-            }
-        } catch(e) { console.error("Monitoring error:", e); }
-    }, 5000); 
-}
+                    if(data.status === 'completed') {
+                        clearInterval(pollingInterval);
+                        document.getElementById('submitBtn').disabled = false;
+                        
+                        if(data.conclusion === 'success') {
+                            statusTxt.innerText = t.status_s;
+                            bar.style.width = '100%';
+                            
+                            // توليد رابط التحميل الخاص بهذا الـ Run ID حصرياً
+                            const repoOwner = "A78009866"; 
+                            const repoName = "Aite.studio"; 
+                            const directLink = `https://github.com/${repoOwner}/${repoName}/releases/download/build-${runId}/app-debug.apk`;
+                            
+                            resultArea.innerHTML = `<a href="${directLink}" class="build-btn" style="background:var(--primary); color:black; text-decoration:none; margin-top: 10px;"><i class="fa-solid fa-cloud-arrow-down"></i> ${t.download_btn}</a>`;
+                            
+                            // حفظ في الهوية (History) بالرابط الصحيح
+                            saveAppToHistory({
+                                appName: currentAppName,
+                                packageName: currentPkgName,
+                                appUrl: currentAppUrl,
+                                permissions: currentPerms,
+                                customizations: currentCustomizations, // Save new customizations
+                                downloadLink: directLink,
+                                iconBase64: uploadedBase64
+                            });
+                        } else {
+                            statusTxt.innerText = t.status_f;
+                            bar.style.background = '#ff4444';
+                        }
+                    } else if(data.status === 'in_progress') {
+                        statusTxt.innerText = t.status_p;
+                        bar.style.width = '65%';
+                    }
+                } catch(e) { console.error("Monitoring error:", e); }
+            }, 5000); 
+        }
 
 
         window.switchTab = function(tabName) {
