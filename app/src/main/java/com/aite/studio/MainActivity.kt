@@ -1,14 +1,22 @@
 package com.aite.studio
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.View
+import android.view.WindowInsets
+import android.view.WindowManager
 import android.webkit.PermissionRequest
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -25,7 +33,7 @@ class MainActivity : AppCompatActivity() {
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        // Handle permission results if needed specifically
+        // Handle permission results
     }
 
     private val fileChooserLauncher = registerForActivityResult(
@@ -41,52 +49,58 @@ class MainActivity : AppCompatActivity() {
         } else {
             fileUploadCallback?.onReceiveValue(null)
         }
-        fileUploadCallback = null
     }
 
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        webView = WebView(this)
-        setContentView(webView)
+        // --- Customization Placeholders (Will be replaced by GitHub Actions) ---
+        val enableZoom = "ENABLE_ZOOM_PLACEHOLDER".toBoolean()
+        val enableTextSelection = "ENABLE_TEXT_SELECTION_PLACEHOLDER".toBoolean()
+        val enableFullScreen = "ENABLE_FULLSCREEN_PLACEHOLDER".toBoolean()
+        val targetUrl = "WEB_URL_PLACEHOLDER"
+        // ----------------------------------------------------------------------
 
-        val webSettings = webView.settings
-        webSettings.javaScriptEnabled = true
-        webSettings.domStorageEnabled = true
-        webSettings.displayZoomControls = false
-        webSettings.builtInZoomControls = false
-        webSettings.useWideViewPort = true
-        webSettings.loadWithOverviewMode = true
-        
-        // Enable permissions for file access and media
-        webSettings.allowFileAccess = true
-        webSettings.allowContentAccess = true
-        webSettings.mediaPlaybackRequiresUserGesture = false
+        // 1. Handle Fullscreen
+        if (enableFullScreen) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window.insetsController?.hide(WindowInsets.Type.statusBars())
+            } else {
+                window.setFlags(
+                    WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                    WindowManager.LayoutParams.FLAG_FULLSCREEN
+                )
+            }
+        }
 
-        webView.webViewClient = WebViewClient()
+        setContentView(R.layout.activity_main)
         
-        // WebChromeClient is essential for Permissions and File Uploads
+        // 2. Setup Notifications Channel (With Vibration)
+        createNotificationChannel()
+
+        webView = findViewById(R.id.webView)
+        val settings = webView.settings
+        settings.javaScriptEnabled = true
+        settings.domStorageEnabled = true
+        settings.allowFileAccess = true
+        
+        // 3. Handle Zoom Customization
+        settings.setSupportZoom(enableZoom)
+        settings.builtInZoomControls = enableZoom
+        settings.displayZoomControls = false
+
+        // 4. Handle Text Selection Customization
+        if (!enableTextSelection) {
+            webView.setOnLongClickListener { true } // Disables long press context menu
+            webView.isHapticFeedbackEnabled = false
+        }
+
         webView.webChromeClient = object : WebChromeClient() {
-            
-            // Handle Camera/Mic permissions
-            override fun onPermissionRequest(request: PermissionRequest) {
-                val resources = request.resources
-                val androidPermissions = mutableListOf<String>()
-
-                for (res in resources) {
-                    if (res == PermissionRequest.RESOURCE_VIDEO_CAPTURE) {
-                        androidPermissions.add(Manifest.permission.CAMERA)
-                    } else if (res == PermissionRequest.RESOURCE_AUDIO_CAPTURE) {
-                        androidPermissions.add(Manifest.permission.RECORD_AUDIO)
-                    }
-                }
-
-                // Check if we have Android permissions, if so, grant Web permission
-                // Simplification: We grant if user has approved app permissions
-                request.grant(resources) 
+            override fun onPermissionRequest(request: PermissionRequest?) {
+                request?.grant(request.resources)
             }
 
-            // Handle File Upload (<input type="file">)
             override fun onShowFileChooser(
                 webView: WebView?,
                 filePathCallback: ValueCallback<Array<Uri>>?,
@@ -94,18 +108,64 @@ class MainActivity : AppCompatActivity() {
             ): Boolean {
                 fileUploadCallback = filePathCallback
                 val intent = Intent(Intent.ACTION_GET_CONTENT)
-                intent.addCategory(Intent.CATEGORY_OPENABLE)
-                intent.type = "*/*" // Allow all file types
+                intent.type = "*/*"
                 fileChooserLauncher.launch(intent)
                 return true
             }
         }
 
-        // Request runtime permissions on startup to ensure smooth experience
-        checkAndRequestPermissions()
+        // 5. Handle External Links & Apps
+        webView.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                val url = request?.url.toString()
+                
+                // Keep app's own links inside WebView
+                if (url.startsWith("http") || url.startsWith("https")) {
+                    if (url.contains(Uri.parse(targetUrl).host ?: "")) {
+                        return false 
+                    }
+                    // Open other websites in external browser
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        startActivity(intent)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                    return true
+                } 
+                
+                // Handle Schemes (tel:, mailto:, whatsapp:, intent:)
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    startActivity(intent)
+                    return true
+                } catch (e: Exception) {
+                    // App not installed
+                    return true
+                }
+            }
+        }
 
-        // GitHub Action will replace this placeholder
-        webView.loadUrl("WEB_URL_PLACEHOLDER")
+        if (savedInstanceState == null) {
+            webView.loadUrl(targetUrl)
+        }
+        
+        checkAndRequestPermissions()
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "App Notifications"
+            val descriptionText = "Default Channel"
+            val importance = NotificationManager.IMPORTANCE_HIGH
+            val channel = NotificationChannel("DEFAULT_CHANNEL", name, importance).apply {
+                description = descriptionText
+                enableVibration(true) // Force Vibration
+            }
+            val notificationManager: NotificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
     }
 
     private fun checkAndRequestPermissions() {
