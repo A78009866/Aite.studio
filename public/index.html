@@ -116,7 +116,7 @@
             <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">أهلا بك !</h2>
             <p style="color: var(--text-muted);">سجل الدخول للبدأ في بناء التطبيقات .</p>
             <button class="google-btn" id="loginBtn">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20">
+                <img src="https://www.gstatic.com/firebasejs/9.22.0/firebase-ui-auth.js" width="20">
                 تسجيل الدخول عبر Google
             </button>
         </div>
@@ -573,7 +573,7 @@
                 const data = await res.json();
                 
                 if(res.ok && data.success) {
-                    // الأهم: نستلم Run ID فريد ونبدأ مراقبته
+                    // الأهم: نستلم Request ID فريد ونبدأ مراقبته
                     startMonitoring(appName, packageName, appUrl, data.run_id, perms, customizations);
                 } else { 
                     showToast('خطأ: ' + (data.error || 'غير معروف')); 
@@ -586,7 +586,7 @@
             }
         });
 
-        async function startMonitoring(currentAppName, currentPkgName, currentAppUrl, runId, currentPerms, currentCustomizations) {
+        async function startMonitoring(currentAppName, currentPkgName, currentAppUrl, serverRequestId, currentPerms, currentCustomizations) {
             const statusTxt = document.getElementById('currentStatus');
             const bar = document.getElementById('progressBar');
             const resultArea = document.getElementById('resultArea');
@@ -594,33 +594,39 @@
             
             if(pollingInterval) clearInterval(pollingInterval);
 
+            let actualGithubRunId = null; // This will store the actual GitHub run ID once found
+
             pollingInterval = setInterval(async () => {
                 try {
-                    const res = await fetch(`/api/status/${runId}`); // نراقب هذا الـ ID فقط
+                    // Poll using the server-generated request ID
+                    const res = await fetch(`/api/status/${serverRequestId}`); 
                     const data = await res.json();
+
+                    if (data.github_run_id) { // If the server found the actual GitHub run ID
+                        actualGithubRunId = data.github_run_id;
+                    }
 
                     if(data.status === 'completed') {
                         clearInterval(pollingInterval);
                         document.getElementById('submitBtn').disabled = false;
                         
-                        if(data.conclusion === 'success') {
+                        if(data.conclusion === 'success' && actualGithubRunId) { // Ensure we have the actual GitHub run ID
                             statusTxt.innerText = t.status_s;
                             bar.style.width = '100%';
                             
-                            // توليد رابط التحميل الخاص بهذا الـ Run ID حصرياً
                             const repoOwner = "A78009866"; 
                             const repoName = "Aite.studio"; 
-                            const directLink = `https://github.com/${repoOwner}/${repoName}/releases/download/build-${runId}/app-debug.apk`;
+                            // Use the actual GitHub run ID for the download link
+                            const directLink = `https://github.com/${repoOwner}/${repoName}/releases/download/build-${actualGithubRunId}/app-debug.apk`;
                             
                             resultArea.innerHTML = `<a href="${directLink}" class="build-btn" style="background:var(--primary); color:black; text-decoration:none; margin-top: 10px;"><i class="fa-solid fa-cloud-arrow-down"></i> ${t.download_btn}</a>`;
                             
-                            // حفظ في الهوية (History) بالرابط الصحيح
                             saveAppToHistory({
                                 appName: currentAppName,
                                 packageName: currentPkgName,
                                 appUrl: currentAppUrl,
                                 permissions: currentPerms,
-                                customizations: currentCustomizations, // Save new customizations
+                                customizations: currentCustomizations,
                                 downloadLink: directLink,
                                 iconBase64: uploadedBase64
                             });
@@ -631,8 +637,16 @@
                     } else if(data.status === 'in_progress') {
                         statusTxt.innerText = t.status_p;
                         bar.style.width = '65%';
+                    } else if (data.status === 'queued' || data.status === 'waiting') {
+                        statusTxt.innerText = t.status_q;
+                        bar.style.width = '30%';
                     }
-                } catch(e) { console.error("Monitoring error:", e); }
+                } catch(e) { 
+                    console.error("Monitoring error:", e); 
+                    statusTxt.innerText = t.status_f; // Indicate failure if monitoring itself fails
+                    clearInterval(pollingInterval);
+                    document.getElementById('submitBtn').disabled = false;
+                }
             }, 5000); 
         }
 
