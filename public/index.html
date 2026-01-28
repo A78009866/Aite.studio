@@ -300,50 +300,58 @@
         let appToDeleteKey = null;
 
         // Translations (Updated with Notification and new customizations)
-        const translations = {
-            ar: { 
-                dir: "rtl", title: "أنشئ تطبيقك الخاص", subtitle: "حوّل موقعك الإلكتروني إلى تطبيق Android احترافي.", 
-                appNameLabel: "اسم التطبيق", appNamePlaceholder: "اسم تطبيقك", appUrlLabel: "رابط الموقع", 
-                packageLabel: "معرف الحزمة", permsLabel: "أذونات التطبيق", permCam: "الكاميرا", permMic: "الميكروفون",
-                permLoc: "الموقع الجغرافي", permFile: "رفع الملفات", permNotify: "الإشعارات", iconLabel: "أيقونة التطبيق", uploadText: "اضغط لرفع الأيقونة",
-                customizationLabel: "تخصيصات إضافية", customZoom: "تمكين التكبير/التصغير", customTextSelection: "تمكين تحديد النص", customSplashScreen: "عرض شاشة البداية",
-                btnBuild: "بدء عملية البناء", btnUpdate: "حفظ وتحديث التطبيق", statusTitle: "حالة البناء:", 
-                status_q: "في انتظار بدء عملية البناء على سيرفرات Aite.studio...", 
-                status_p_upload: "جاري رفع أيقونة التطبيق إلى Cloudinary...", 
-                status_p_gh_dispatch: "جاري إرسال طلب البناء إلى GitHub Actions...", 
-                status_p_gh_queued: "طلب البناء في قائمة الانتظار على GitHub Actions...", 
-                status_p_gh_in_progress: "سيرفرات Aite.studio تقوم ببناء التطبيق (قد يستغرق 3-5 دقائق)...", 
-                status_s: "تم بناء التطبيق بنجاح!", 
-                status_f: "فشلت عملية البناء", 
-                download_btn: "تحميل APK", selectLang: "اختر اللغة",
-                footerRights: "© 2026 جميع الحقوق محفوظة لشركة Aite.studio.", createTab: "إنشاء تطبيق", myAppsTab: "تطبيقاتي السابقة",
-                logout: "خروج", toast_no_icon: "يرجى رفع أيقونة", preview_default: "اسم التطبيق",
-                delete_title: "حذف التطبيق؟", delete_desc: "هل أنت متأكد من حذف هذا التطبيق نهائياً؟", delete_success: "تم الحذف بنجاح", 
-                edit_mode_title: "تعديل التطبيق: ",
-                edit_success: "تم تحديث التطبيق بنجاح!" // Added for edit success toast
-            },
-            en: { 
-                dir: "ltr", title: "Create Your App", subtitle: "Convert your website into a pro Android App.", 
-                appNameLabel: "App Name", appNamePlaceholder: "Your App Name", appUrlLabel: "Website URL", 
-                packageLabel: "Package ID", permsLabel: "App Permissions", permCam: "Camera", permMic: "Microphone",
-                permLoc: "Location", permFile: "File Upload", permNotify: "Notifications", iconLabel: "App Icon", uploadText: "Click to upload icon",
-                customizationLabel: "Additional Customizations", customZoom: "Enable Zoom", customTextSelection: "Enable Text Selection", customSplashScreen: "Show Splash Screen",
-                btnBuild: "Start Building", btnUpdate: "Save & Update App", statusTitle: "Build Status:", 
-                status_q: "Waiting for build process to start on Aite.studio servers...", 
-                status_p_upload: "Uploading app icon to Cloudinary...", 
-                status_p_gh_dispatch: "Dispatching build request to GitHub Actions...", 
-                status_p_gh_queued: "Build request queued on GitHub Actions...", 
-                status_p_gh_in_progress: "Aite.studio servers are building the app (may take 3-5 minutes)...", 
-                status_s: "App built successfully!", 
-                status_f: "Build Failed", 
-                download_btn: "Download APK", selectLang: "Select Language",
-                footerRights: "© 2026 Aite.studio. All rights reserved.", createTab: "Create App", myAppsTab: "My Apps",
-                logout: "Logout", toast_no_icon: "Please upload an icon", preview_default: "App Name",
-                delete_title: "Delete App?", delete_desc: "Are you sure you want to delete this app permanently?", delete_success: "App deleted",
-                edit_mode_title: "Editing App: ",
-                edit_success: "App updated successfully!" // Added for edit success toast
-            }
-        };
+const translations = {
+    ar: { 
+        dir: "rtl", title: "أنشئ تطبيقك الخاص", subtitle: "حوّل موقعك الإلكتروني إلى تطبيق Android احترافي.", 
+        appNameLabel: "اسم التطبيق", appNamePlaceholder: "اسم تطبيقك", appUrlLabel: "رابط الموقع", 
+        packageLabel: "معرف الحزمة", permsLabel: "أذونات التطبيق", permCam: "الكاميرا", permMic: "الميكروفون",
+        permLoc: "الموقع الجغرافي", permFile: "رفع الملفات", permNotify: "الإشعارات", iconLabel: "أيقونة التطبيق", uploadText: "اضغط لرفع الأيقونة",
+        customizationLabel: "تخصيصات إضافية", customZoom: "تمكين التكبير/التصغير", customTextSelection: "تمكين تحديد النص", customSplashScreen: "عرض شاشة البداية",
+        btnBuild: "بدء عملية البناء", btnUpdate: "حفظ وتحديث التطبيق", statusTitle: "حالة البناء:", 
+        
+        // --- التعديلات هنا ---
+        status_q: "في انتظار بدء المعالجة على سيرفرات Aite.studio...", 
+        status_p_upload: "جاري معاينة وتجهيز أيقونة التطبيق...", 
+        status_p_gh_dispatch: "جاري إرسال البيانات إلى خوادم البناء Aite.studio...", 
+        status_p_gh_queued: "الطلب في قائمة الانتظار، جاري تحضير بيئة العمل...", 
+        status_p_gh_in_progress: "سيرفرات Aite.studio تقوم ببناء التطبيق (قد يستغرق 3-5 دقائق)...", 
+        // -------------------
+
+        status_s: "تم بناء التطبيق بنجاح!", 
+        status_f: "فشلت عملية البناء", 
+        download_btn: "تحميل APK", selectLang: "اختر اللغة",
+        footerRights: "© 2026 جميع الحقوق محفوظة لشركة Aite.studio.", createTab: "إنشاء تطبيق", myAppsTab: "تطبيقاتي السابقة",
+        logout: "خروج", toast_no_icon: "يرجى رفع أيقونة", preview_default: "اسم التطبيق",
+        delete_title: "حذف التطبيق؟", delete_desc: "هل أنت متأكد من حذف هذا التطبيق نهائياً؟", delete_success: "تم الحذف بنجاح", 
+        edit_mode_title: "تعديل التطبيق: ",
+        edit_success: "تم تحديث التطبيق بنجاح!" 
+    },
+    en: { 
+        dir: "ltr", title: "Create Your App", subtitle: "Convert your website into a pro Android App.", 
+        appNameLabel: "App Name", appNamePlaceholder: "Your App Name", appUrlLabel: "Website URL", 
+        packageLabel: "Package ID", permsLabel: "App Permissions", permCam: "Camera", permMic: "Microphone",
+        permLoc: "Location", permFile: "File Upload", permNotify: "Notifications", iconLabel: "App Icon", uploadText: "Click to upload icon",
+        customizationLabel: "Additional Customizations", customZoom: "Enable Zoom", customTextSelection: "Enable Text Selection", customSplashScreen: "Show Splash Screen",
+        btnBuild: "Start Building", btnUpdate: "Save & Update App", statusTitle: "Build Status:", 
+        
+        // --- Changes Here ---
+        status_q: "Waiting for processing on Aite.studio servers...", 
+        status_p_upload: "Processing and optimizing app icon...", 
+        status_p_gh_dispatch: "Sending data to Aite.studio build servers...", 
+        status_p_gh_queued: "Build request queued. Preparing environment...", 
+        status_p_gh_in_progress: "Aite.studio servers are building the app (may take 3-5 minutes)...", 
+        // -------------------
+
+        status_s: "App built successfully!", 
+        status_f: "Build Failed", 
+        download_btn: "Download APK", selectLang: "Select Language",
+        footerRights: "© 2026 Aite.studio. All rights reserved.", createTab: "Create App", myAppsTab: "My Apps",
+        logout: "Logout", toast_no_icon: "Please upload an icon", preview_default: "App Name",
+        delete_title: "Delete App?", delete_desc: "Are you sure you want to delete this app permanently?", delete_success: "App deleted",
+        edit_mode_title: "Editing App: ",
+        edit_success: "App updated successfully!" 
+    }
+};
         let currentLang = 'ar';
 
         // Auth Listeners
