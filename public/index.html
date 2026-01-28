@@ -307,7 +307,15 @@
                 packageLabel: "معرف الحزمة", permsLabel: "أذونات التطبيق", permCam: "الكاميرا", permMic: "الميكروفون",
                 permLoc: "الموقع الجغرافي", permFile: "رفع الملفات", permNotify: "الإشعارات", iconLabel: "أيقونة التطبيق", uploadText: "اضغط لرفع الأيقونة",
                 customizationLabel: "تخصيصات إضافية", customZoom: "تمكين التكبير/التصغير", customTextSelection: "تمكين تحديد النص", customSplashScreen: "عرض شاشة البداية",
-                btnBuild: "بدء عملية البناء", btnUpdate: "حفظ وتحديث التطبيق", statusTitle: "حالة البناء:", status_q: "في الانتظار...", status_p_upload: "جاري رفع الأيقونة...", status_p_gh_dispatch: "جاري إرسال طلب البناء...", status_p_gh_queued: "طلب البناء في قائمة الانتظار...", status_p_gh_in_progress: "جاري البناء على GitHub Actions...", status_p_gh_download_icon: "جاري تنزيل الأيقونة...", status_p_gh_build_apk: "جاري تجميع ملف APK...", status_s: "تم بنجاح!", status_f: "فشلت العملية", download_btn: "تحميل APK", selectLang: "اختر اللغة",
+                btnBuild: "بدء عملية البناء", btnUpdate: "حفظ وتحديث التطبيق", statusTitle: "حالة البناء:", 
+                status_q: "في الانتظار...", 
+                status_p_upload: "جاري رفع الأيقونة...", 
+                status_p_gh_dispatch: "جاري إرسال طلب البناء إلى GitHub...", 
+                status_p_gh_queued: "طلب البناء في قائمة الانتظار على GitHub...", 
+                status_p_gh_in_progress: "جاري البناء على GitHub Actions (قد يستغرق 3-5 دقائق)...", 
+                status_s: "تم البناء بنجاح!", 
+                status_f: "فشلت عملية البناء", 
+                download_btn: "تحميل APK", selectLang: "اختر اللغة",
                 footerRights: "© 2026 جميع الحقوق محفوظة لشركة Aite.studio.", createTab: "إنشاء تطبيق", myAppsTab: "تطبيقاتي السابقة",
                 logout: "خروج", toast_no_icon: "يرجى رفع أيقونة", preview_default: "اسم التطبيق",
                 delete_title: "حذف التطبيق؟", delete_desc: "هل أنت متأكد من حذف هذا التطبيق نهائياً؟", delete_success: "تم الحذف بنجاح", 
@@ -319,7 +327,15 @@
                 packageLabel: "Package ID", permsLabel: "App Permissions", permCam: "Camera", permMic: "Microphone",
                 permLoc: "Location", permFile: "File Upload", permNotify: "Notifications", iconLabel: "App Icon", uploadText: "Click to upload icon",
                 customizationLabel: "Additional Customizations", customZoom: "Enable Zoom", customTextSelection: "Enable Text Selection", customSplashScreen: "Show Splash Screen",
-                btnBuild: "Start Building", btnUpdate: "Save & Update App", statusTitle: "Build Status:", status_q: "Queued...", status_p_upload: "Uploading icon...", status_p_gh_dispatch: "Dispatching GitHub build...", status_p_gh_queued: "Build request queued...", status_p_gh_in_progress: "Building on GitHub Actions...", status_p_gh_download_icon: "Downloading icon...", status_p_gh_build_apk: "Compiling APK...", status_s: "Build Success!", status_f: "Build Failed", download_btn: "Download APK", selectLang: "Select Language",
+                btnBuild: "Start Building", btnUpdate: "Save & Update App", statusTitle: "Build Status:", 
+                status_q: "Queued...", 
+                status_p_upload: "Uploading icon...", 
+                status_p_gh_dispatch: "Dispatching GitHub build request...", 
+                status_p_gh_queued: "Build request queued on GitHub...", 
+                status_p_gh_in_progress: "Building on GitHub Actions (may take 3-5 minutes)...", 
+                status_s: "Build Success!", 
+                status_f: "Build Failed", 
+                download_btn: "Download APK", selectLang: "Select Language",
                 footerRights: "© 2026 Aite.studio. All rights reserved.", createTab: "Create App", myAppsTab: "My Apps",
                 logout: "Logout", toast_no_icon: "Please upload an icon", preview_default: "App Name",
                 delete_title: "Delete App?", delete_desc: "Are you sure you want to delete this app permanently?", delete_success: "App deleted",
@@ -412,15 +428,18 @@
             const newData = {
                 appName: appData.appName,
                 packageName: appData.packageName,
-                appUrl: document.getElementById('appUrl').value,
+                appUrl: appData.appUrl, // Use appData.appUrl directly
                 permissions: appData.permissions,
-                customizations: appData.customizations, // Save new customizations
+                customizations: appData.customizations, 
                 downloadLink: appData.downloadLink,
                 icon: appData.iconBase64,
                 timestamp: Date.now()
             };
             if (currentEditingKey) {
-                set(ref(db, 'users/' + currentUser.uid + '/apps/' + currentEditingKey), newData).then(exitEditMode);
+                set(ref(db, 'users/' + currentUser.uid + '/apps/' + currentEditingKey), newData).then(() => {
+                    exitEditMode();
+                    showToast(translations[currentLang].edit_success || "تم تحديث التطبيق بنجاح!"); // Add a success message for edit
+                });
             } else {
                 push(ref(db, 'users/' + currentUser.uid + '/apps'), newData);
             }
@@ -491,6 +510,11 @@
             document.getElementById('enableTextSelection').checked = true;
             document.getElementById('enableSplashScreen').checked = true;
             window.updatePreview();
+            // Clear status container when exiting edit mode
+            document.getElementById('statusContainer').style.display = 'none';
+            document.getElementById('resultArea').innerHTML = '';
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('progressBar').style.background = 'var(--primary)'; // Reset color
         }
 
         // Image Cropper
@@ -535,6 +559,8 @@
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;
             document.getElementById('statusContainer').style.display = 'block';
+            document.getElementById('resultArea').innerHTML = ''; // Clear previous results
+            document.getElementById('progressBar').style.background = 'var(--primary)'; // Reset progress bar color
             
             const appName = document.getElementById('appName').value;
             const packageName = document.getElementById('packageName').value;
@@ -609,38 +635,28 @@
             if(pollingInterval) clearInterval(pollingInterval);
 
             let actualGithubRunId = null; // This will store the actual GitHub run ID once found
-            let progressMessages = [
-                t.status_p_gh_queued,
-                t.status_p_gh_in_progress,
-                t.status_p_gh_download_icon,
-                t.status_p_gh_build_apk
-            ];
-            let messageIndex = 0;
+            let lastStatus = ''; // To track changes in status
 
             pollingInterval = setInterval(async () => {
                 try {
-                    console.log(`Polling status for requestId: ${serverRequestId}`);
                     const res = await fetch(`/api/status/${serverRequestId}`); 
                     const data = await res.json();
-                    console.log("Received status data:", data);
 
-                    if (data.github_run_id) { // If the server found the actual GitHub run ID
+                    if (data.github_run_id) { 
                         actualGithubRunId = data.github_run_id;
-                        console.log("Actual GitHub Run ID found:", actualGithubRunId);
                     }
 
                     if(data.status === 'completed') {
                         clearInterval(pollingInterval);
                         document.getElementById('submitBtn').disabled = false;
                         
-                        if(data.conclusion === 'success' && actualGithubRunId) { // Ensure we have the actual GitHub run ID
+                        if(data.conclusion === 'success' && actualGithubRunId) { 
                             statusTxt.innerText = t.status_s;
                             bar.style.width = '100%';
-                            bar.style.background = 'var(--primary)'; // Ensure it's green on success
+                            bar.style.background = 'var(--primary)'; 
                             
                             const repoOwner = "A78009866"; 
                             const repoName = "Aite.studio"; 
-                            // Use the actual GitHub run ID for the download link
                             const directLink = `https://github.com/${repoOwner}/${repoName}/releases/download/build-${actualGithubRunId}/app-debug.apk`;
                             
                             resultArea.innerHTML = `<a href="${directLink}" class="build-btn" style="background:var(--primary); color:black; text-decoration:none; margin-top: 10px;"><i class="fa-solid fa-cloud-arrow-down"></i> ${t.download_btn}</a>`;
@@ -657,26 +673,29 @@
                         } else {
                             statusTxt.innerText = t.status_f;
                             bar.style.width = '100%';
-                            bar.style.background = '#ff4444'; // Red for failure
+                            bar.style.background = '#ff4444'; 
                             resultArea.innerHTML = `<p style="color:#ff4444; margin-top: 10px;">${t.status_f}</p>`;
                         }
                     } else if(data.status === 'in_progress') {
-                        // Simulate progress within the in_progress state
-                        if (currentProgress < 90) { // Don't go to 100% until completed
-                            currentProgress += 5; // Increment by a small amount
-                            if (currentProgress > 90) currentProgress = 90; // Cap at 90%
+                        if (lastStatus !== 'in_progress') { // Only update progress if status changed to in_progress
+                            currentProgress = 40; // Start in_progress at a higher percentage
+                        }
+                        if (currentProgress < 90) { 
+                            currentProgress += 5; 
+                            if (currentProgress > 90) currentProgress = 90; 
                         }
                         bar.style.width = `${currentProgress}%`;
-                        statusTxt.innerText = progressMessages[messageIndex % progressMessages.length];
-                        messageIndex++;
+                        statusTxt.innerText = t.status_p_gh_in_progress;
+                        lastStatus = 'in_progress';
                     } else if (data.status === 'queued' || data.status === 'waiting') {
-                        statusTxt.innerText = t.status_q;
+                        statusTxt.innerText = t.status_p_gh_queued;
                         bar.style.width = '30%';
                         currentProgress = 30;
+                        lastStatus = 'queued';
                     }
                 } catch(e) { 
                     console.error("Monitoring error:", e); 
-                    statusTxt.innerText = t.status_f; // Indicate failure if monitoring itself fails
+                    statusTxt.innerText = t.status_f; 
                     bar.style.width = '100%';
                     bar.style.background = '#ff4444';
                     clearInterval(pollingInterval);
