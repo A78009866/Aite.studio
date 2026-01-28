@@ -122,26 +122,37 @@ app.post('/api/build', async (req, res) => {
 });
 
 // --- API: فحص الحالة برقم العملية (Fixes the issue) ---
+// --- API: فحص الحالة برقم العملية (محسن لتجنب حظر GitHub) ---
 app.get('/api/status/:requestId', async (req, res) => {
     const { requestId } = req.params;
     try {
-        // Fetch recent repository_dispatch workflow runs
+        // 1. جلب آخر 5 عمليات فقط بدلاً من 100 لتقليل الضغط
         const runsResponse = await axios.get(
-            `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?event=repository_dispatch&per_page=100`, // Increased per_page to 100
+            `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?event=repository_dispatch&per_page=5`, 
             { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } }
         );
 
         let foundRun = null;
+
+        // 2. البحث الذكي
         for (const run of runsResponse.data.workflow_runs) {
-            // Fetch details for each run to access client_payload
-            const runDetailsResponse = await axios.get(
-                `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs/${run.id}`,
-                { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } }
-            );
-            const clientPayload = runDetailsResponse.data.client_payload;
-            if (clientPayload && clientPayload.request_id === requestId) {
-                foundRun = runDetailsResponse.data;
-                break;
+            // تحسين: إذا قمنا بتحديث ملف YML ليحتوي الاسم على ID، يمكننا التحقق من الاسم مباشرة دون جلب التفاصيل
+            // لكن سنبقي جلب التفاصيل لضمان العمل مع الكود القديم، ولكن لـ 5 عناصر فقط
+            
+            try {
+                const runDetailsResponse = await axios.get(
+                    run.url, // استخدام الرابط المباشر من الاستجابة
+                    { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } }
+                );
+                
+                const clientPayload = runDetailsResponse.data.client_payload;
+                if (clientPayload && clientPayload.request_id === requestId) {
+                    foundRun = runDetailsResponse.data;
+                    break; // وجدنا العملية، توقف عن البحث فوراً
+                }
+            } catch (innerError) {
+                console.warn(`Skipping run ${run.id} due to fetch error.`);
+                continue;
             }
         }
 
@@ -151,19 +162,20 @@ app.get('/api/status/:requestId', async (req, res) => {
                 downloadUrl = await getReleaseDownloadUrl(foundRun.id, REPO_OWNER, REPO_NAME, GITHUB_TOKEN);
             }
             res.json({
-                status: foundRun.status, // queued, in_progress, completed
-                conclusion: foundRun.conclusion, // success, failure, cancelled
-                github_run_id: foundRun.id, // Return the actual GitHub run ID
-                download_url: downloadUrl // Add the download URL here
+                status: foundRun.status,
+                conclusion: foundRun.conclusion,
+                github_run_id: foundRun.id,
+                download_url: downloadUrl
             });
         } else {
-            // If no matching run is found yet, assume it's queued or not started
+            // لم يتم العثور عليها بعد (قد تكون في مرحلة المعالجة الأولية)
             res.json({ status: 'queued', conclusion: null, github_run_id: null, download_url: null });
         }
 
     } catch (error) {
         console.error(`Error checking status for request ${requestId}:`, error.message);
-        res.status(500).json({ error: 'Could not fetch status' });
+        // إرسال 200 مع حالة "معالجة" بدلاً من 500 لتجنب توقف العميل عن المحاولة في حالة وجود خطأ مؤقت
+        res.status(200).json({ status: 'in_progress', conclusion: null }); 
     }
 });
 
