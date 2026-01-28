@@ -19,14 +19,28 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Install Image Tools
-        run: sudo apt-get update && sudo apt-get install -y imagemagick
+      - name: Install Image Tools and JQ
+        run: sudo apt-get update && sudo apt-get install -y imagemagick jq
 
       - name: Build System Setup
         run: |
           RAW_PKG="${{ github.event.client_payload.package_name }}"
           CLEAN_PKG=$(echo "$RAW_PKG" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9.')
           [ -z "$CLEAN_PKG" ] && CLEAN_PKG="com.aite.app"
+
+          # Parse permissions and customizations JSON
+          PERMISSIONS_JSON='${{ github.event.client_payload.permissions_json }}'
+          CUSTOMIZATIONS_JSON='${{ github.event.client_payload.customizations_json }}'
+
+          USE_CAMERA=$(echo "$PERMISSIONS_JSON" | jq -r '.camera')
+          USE_MIC=$(echo "$PERMISSIONS_JSON" | jq -r '.mic')
+          USE_LOCATION=$(echo "$PERMISSIONS_JSON" | jq -r '.location')
+          USE_FILES=$(echo "$PERMISSIONS_JSON" | jq -r '.files')
+          USE_NOTIFICATIONS=$(echo "$PERMISSIONS_JSON" | jq -r '.notify')
+
+          ENABLE_ZOOM=$(echo "$CUSTOMIZATIONS_JSON" | jq -r '.enableZoom')
+          ENABLE_TEXT_SELECTION=$(echo "$CUSTOMIZATIONS_JSON" | jq -r '.enableTextSelection')
+          ENABLE_SPLASH_SCREEN=$(echo "$CUSTOMIZATIONS_JSON" | jq -r '.enableSplashScreen')
 
           mkdir -p app/src/main/res/mipmap-mdpi app/src/main/res/mipmap-hdpi app/src/main/res/mipmap-xhdpi app/src/main/res/mipmap-xxhdpi app/src/main/res/mipmap-xxxhdpi
           mkdir -p gradle/wrapper app/src/main/res/xml app/src/main/java/com/aite/studio app/src/main/res/layout
@@ -64,19 +78,19 @@ jobs:
           EOF
 
           PERMISSIONS=""
-          if [ "${{ github.event.client_payload.use_camera }}" == "true" ]; then
+          if [ "$USE_CAMERA" == "true" ]; then
             PERMISSIONS+='<uses-permission android:name="android.permission.CAMERA" />\n'
           fi
-          if [ "${{ github.event.client_payload.use_mic }}" == "true" ]; then
+          if [ "$USE_MIC" == "true" ]; then
             PERMISSIONS+='<uses-permission android:name="android.permission.RECORD_AUDIO" />\n<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n'
           fi
-          if [ "${{ github.event.client_payload.use_location }}" == "true" ]; then
+          if [ "$USE_LOCATION" == "true" ]; then
             PERMISSIONS+='<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n'
           fi
-          if [ "${{ github.event.client_payload.use_files }}" == "true" ]; then
+          if [ "$USE_FILES" == "true" ]; then
             PERMISSIONS+='<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />\n<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />\n'
           fi
-          if [ "${{ github.event.client_payload.use_notifications }}" == "true" ]; then
+          if [ "$USE_NOTIFICATIONS" == "true" ]; then
             PERMISSIONS+='<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n'
           fi
 
@@ -230,9 +244,9 @@ jobs:
                   super.onCreate(savedInstanceState)
                   
                   // --- Customization Placeholders (Will be replaced by GitHub Actions) ---
-                  val enableZoom = "${{ github.event.client_payload.enable_zoom }}".toBoolean()
-                  val enableTextSelection = "${{ github.event.client_payload.enable_text_selection }}".toBoolean()
-                  val enableSplashScreen = "${{ github.event.client_payload.enable_splash_screen }}".toBoolean()
+                  val enableZoom = "$ENABLE_ZOOM".toBoolean()
+                  val enableTextSelection = "$ENABLE_TEXT_SELECTION".toBoolean()
+                  val enableSplashScreen = "$ENABLE_SPLASH_SCREEN".toBoolean()
                   val enableFullScreen = "false".toBoolean() // Keeping this as false for now, can be added later
                   val targetUrl = "${{ github.event.client_payload.app_url }}"
                   // ----------------------------------------------------------------------
@@ -363,19 +377,19 @@ jobs:
               private fun checkAndRequestPermissions() {
                   val permissionsToRequest = mutableListOf<String>()
                   
-                  if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                  if ("$USE_CAMERA".toBoolean() && ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                       permissionsToRequest.add(Manifest.permission.CAMERA)
                   }
-                  if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                  if ("$USE_MIC".toBoolean() && ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
                       permissionsToRequest.add(Manifest.permission.RECORD_AUDIO)
                   }
-                  if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                  if ("$USE_LOCATION".toBoolean() && ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                       permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
                   }
 
                   // Notification Permission for Android 13+
                   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                      if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                      if ("$USE_NOTIFICATIONS".toBoolean() && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                           permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
                       }
                   }
