@@ -539,8 +539,14 @@
         });
         window.performCrop = function() {
             if(!cropper) return;
-            const canvas = cropper.getCroppedCanvas({ width: 512, height: 512, fillColor: '#fff' });
-            uploadedBase64 = canvas.toDataURL('image/png', 1.0);
+            // تقليل الأبعاد من 512 إلى 256 لتسريع الرفع وتجنب Timeout
+            // وتقليل الجودة قليلاً إلى 0.9
+            const canvas = cropper.getCroppedCanvas({ width: 256, height: 256, fillColor: '#fff' });
+            
+            // استخدام JPEG بدلاً من PNG إذا كنت تريد سرعة أكبر، لكن PNG أفضل للشفافية
+            // سنبقيها PNG ولكن بحجم أصغر
+            uploadedBase64 = canvas.toDataURL('image/png', 0.9);
+            
             document.getElementById('previewIcon').src = uploadedBase64;
             document.getElementById('previewIcon').style.display = 'block';
             document.getElementById('iconPlaceholder').style.display = 'none';
