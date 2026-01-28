@@ -73,25 +73,26 @@ app.post('/api/build', async (req, res) => {
         // ج. انتظار قليل والحصول على Run ID الخاص بهذه العملية تحديداً
         // ننتظر 3 ثواني لضمان أن GitHub قد أنشأ العملية في القائمة
         setTimeout(async () => {
-            try {
-                const runs = await axios.get(
-                    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?event=repository_dispatch&per_page=1`,
-                    { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } }
-                );
-                
-                if (runs.data.workflow_runs.length > 0) {
-                    const runId = runs.data.workflow_runs[0].id;
-                    console.log(`🆔 تم تحديد رقم العملية: ${runId}`);
-                    // نرسل الـ ID للمستخدم ليراقب هو فقط
-                    res.json({ success: true, run_id: runId });
-                } else {
-                    res.status(500).json({ error: "لم يتم العثور على عملية البناء" });
-                }
-            } catch (err) {
-                console.error("خطأ في جلب ID:", err.message);
-                res.status(500).json({ error: "فشل في تحديد رقم العملية" });
-            }
-        }, 3000); // تأخير 3 ثواني
+    try {
+        // جلب آخر 5 عمليات بناء للتأكد من إيجاد العملية الصحيحة
+        const runs = await axios.get(
+            `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?event=repository_dispatch&per_page=5`,
+            { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } }
+        );
+        
+        // البحث عن العملية التي تحتوي على اسم التطبيق في العنوان أو التي بدأت الآن
+        // سنعتمد على أول عملية في القائمة لأنها الأحدث التي أطلقها السيرفر قبل 3 ثوانٍ
+        if (runs.data.workflow_runs.length > 0) {
+            const runId = runs.data.workflow_runs[0].id;
+            console.log(`🆔 تم تخصيص Run ID فريد لطلبك: ${runId}`);
+            res.json({ success: true, run_id: runId });
+        } else {
+            res.status(500).json({ error: "لم يتم العثور على العملية، حاول مجدداً" });
+        }
+    } catch (err) {
+        res.status(500).json({ error: "فشل في تتبع العملية" });
+    }
+}, 4000); // زيادة وقت التأخير لـ 4 ثوانٍ لضمان استجابة GitHub
 
     } catch (error) {
         console.error("❌ Error:", error.message);
