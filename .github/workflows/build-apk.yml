@@ -29,7 +29,7 @@ jobs:
           [ -z "$CLEAN_PKG" ] && CLEAN_PKG="com.aite.app"
 
           mkdir -p app/src/main/res/mipmap-mdpi app/src/main/res/mipmap-hdpi app/src/main/res/mipmap-xhdpi app/src/main/res/mipmap-xxhdpi app/src/main/res/mipmap-xxxhdpi
-          mkdir -p gradle/wrapper app/src/main/res/xml app/src/main/java/com/aite/studio
+          mkdir -p gradle/wrapper app/src/main/res/xml app/src/main/java/com/aite/studio app/src/main/res/layout
           
           curl -L https://raw.githubusercontent.com/gradle/gradle/v8.2.0/gradle/wrapper/gradle-wrapper.jar -o gradle/wrapper/gradle-wrapper.jar
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip" > gradle/wrapper/gradle-wrapper.properties
@@ -76,6 +76,9 @@ jobs:
           if [ "${{ github.event.client_payload.use_files }}" == "true" ]; then
             PERMISSIONS+='<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />\n<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />\n'
           fi
+          if [ "${{ github.event.client_payload.use_notifications }}" == "true" ]; then
+            PERMISSIONS+='<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n'
+          fi
 
           cat <<EOF > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
@@ -120,19 +123,77 @@ jobs:
           </paths>
           EOF
 
+          # Create activity_main.xml for the WebView
+          cat <<EOF > app/src/main/res/layout/activity_main.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
+
+              <WebView
+                  android:id="@+id/webView"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent" />
+
+          </RelativeLayout>
+          EOF
+
+          # Create splash_screen.xml for the splash screen
+          cat <<EOF > app/src/main/res/layout/splash_screen.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              android:gravity="center"
+              android:background="#000000">
+
+              <ImageView
+                  android:id="@+id/splash_icon"
+                  android:layout_width="120dp"
+                  android:layout_height="120dp"
+                  android:src="@mipmap/ic_launcher"
+                  android:scaleType="fitCenter"
+                  android:layout_marginBottom="20dp" />
+
+              <TextView
+                  android:id="@+id/splash_app_name"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="${{ github.event.client_payload.app_name }}"
+                  android:textColor="#FFFFFF"
+                  android:textSize="24sp"
+                  android:textStyle="bold" />
+
+          </LinearLayout>
+          EOF
+
           cat <<EOF > app/src/main/java/com/aite/studio/MainActivity.kt
           package com.aite.studio
+
           import android.Manifest
+          import android.annotation.SuppressLint
+          import android.app.NotificationChannel
+          import android.app.NotificationManager
+          import android.content.Context
           import android.content.Intent
           import android.content.pm.PackageManager
           import android.net.Uri
+          import android.os.Build
           import android.os.Bundle
+          import android.os.Handler
+          import android.os.Looper
+          import android.view.View
+          import android.view.WindowInsets
+          import android.view.WindowManager
           import android.webkit.PermissionRequest
           import android.webkit.ValueCallback
           import android.webkit.WebChromeClient
+          import android.webkit.WebResourceRequest
           import android.webkit.WebSettings
           import android.webkit.WebView
           import android.webkit.WebViewClient
+          import android.widget.Toast
           import androidx.activity.result.contract.ActivityResultContracts
           import androidx.appcompat.app.AppCompatActivity
           import androidx.core.content.ContextCompat
@@ -140,58 +201,197 @@ jobs:
           class MainActivity : AppCompatActivity() {
               private lateinit var webView: WebView
               private var fileUploadCallback: ValueCallback<Array<Uri>>? = null
-              private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
-              private val fileChooserLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+
+              // Launchers for Permissions and Files
+              private val requestPermissionLauncher = registerForActivityResult(
+                  ActivityResultContracts.RequestMultiplePermissions()
+              ) { permissions ->
+                  // Handle permission results
+              }
+
+              private val fileChooserLauncher = registerForActivityResult(
+                  ActivityResultContracts.StartActivityForResult()
+              ) { result ->
                   if (result.resultCode == RESULT_OK) {
-                      fileUploadCallback?.onReceiveValue(if (result.data?.data != null) arrayOf(result.data!!.data!!) else null)
+                      val data = result.data?.data
+                      if (data != null) {
+                          fileUploadCallback?.onReceiveValue(arrayOf(data))
+                      } else {
+                          fileUploadCallback?.onReceiveValue(null)
+                      }
                   } else {
                       fileUploadCallback?.onReceiveValue(null)
                   }
                   fileUploadCallback = null
               }
 
+              @SuppressLint("SetJavaScriptEnabled")
               override fun onCreate(savedInstanceState: Bundle?) {
                   super.onCreate(savedInstanceState)
-                  webView = WebView(this)
-                  setContentView(webView)
-                  val webSettings = webView.settings
-                  webSettings.javaScriptEnabled = true
-                  webSettings.domStorageEnabled = true
-                  webSettings.displayZoomControls = false
-                  webSettings.builtInZoomControls = false
-                  webSettings.useWideViewPort = true
-                  webSettings.loadWithOverviewMode = true
-                  webSettings.allowFileAccess = true
-                  webSettings.allowContentAccess = true
-                  webSettings.mediaPlaybackRequiresUserGesture = false
                   
-                  val newUA = webSettings.userAgentString.replace("; wv", "")
-                  webSettings.userAgentString = newUA
+                  // --- Customization Placeholders (Will be replaced by GitHub Actions) ---
+                  val enableZoom = "${{ github.event.client_payload.enable_zoom }}".toBoolean()
+                  val enableTextSelection = "${{ github.event.client_payload.enable_text_selection }}".toBoolean()
+                  val enableSplashScreen = "${{ github.event.client_payload.enable_splash_screen }}".toBoolean()
+                  val enableFullScreen = "false".toBoolean() // Keeping this as false for now, can be added later
+                  val targetUrl = "${{ github.event.client_payload.app_url }}"
+                  // ----------------------------------------------------------------------
 
-                  webView.webViewClient = WebViewClient()
+                  // 1. Handle Fullscreen (if needed)
+                  if (enableFullScreen) {
+                      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                          window.insetsController?.hide(WindowInsets.Type.statusBars())
+                      } else {
+                          window.setFlags(
+                              WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                              WindowManager.LayoutParams.FLAG_FULLSCREEN
+                          )
+                      }
+                  }
+
+                  if (enableSplashScreen && savedInstanceState == null) {
+                      setContentView(R.layout.splash_screen)
+                      Handler(Looper.getMainLooper()).postDelayed({
+                          setupWebView(enableZoom, enableTextSelection, targetUrl)
+                      }, 2000) // Display splash screen for 2 seconds
+                  } else {
+                      setupWebView(enableZoom, enableTextSelection, targetUrl)
+                  }
+                  
+                  // 2. Setup Notifications Channel (With Vibration)
+                  createNotificationChannel()
+                  checkAndRequestPermissions()
+              }
+
+              @SuppressLint("SetJavaScriptEnabled")
+              private fun setupWebView(enableZoom: Boolean, enableTextSelection: Boolean, targetUrl: String) {
+                  setContentView(R.layout.activity_main)
+                  webView = findViewById(R.id.webView)
+                  val settings = webView.settings
+                  settings.javaScriptEnabled = true
+                  settings.domStorageEnabled = true
+                  settings.allowFileAccess = true
+                  settings.allowContentAccess = true
+                  settings.mediaPlaybackRequiresUserGesture = false
+                  
+                  val newUA = settings.userAgentString.replace("; wv", "")
+                  settings.userAgentString = newUA
+                  
+                  // 3. Handle Zoom Customization
+                  settings.setSupportZoom(enableZoom)
+                  settings.builtInZoomControls = enableZoom
+                  settings.displayZoomControls = false
+
+                  // 4. Handle Text Selection Customization
+                  if (!enableTextSelection) {
+                      webView.setOnLongClickListener { true } // Disables long press context menu
+                      webView.isLongClickable = false // Also disable long click for text selection
+                      webView.isHapticFeedbackEnabled = false
+                  } else {
+                      webView.setOnLongClickListener(null)
+                      webView.isLongClickable = true
+                  }
+
                   webView.webChromeClient = object : WebChromeClient() {
-                      override fun onPermissionRequest(request: PermissionRequest) { request.grant(request.resources) }
-                      override fun onShowFileChooser(v: WebView?, c: ValueCallback<Array<Uri>>?, p: FileChooserParams?): Boolean {
-                          fileUploadCallback = c
+                      override fun onPermissionRequest(request: PermissionRequest?) {
+                          request?.grant(request.resources)
+                      }
+
+                      override fun onShowFileChooser(
+                          webView: WebView?,
+                          filePathCallback: ValueCallback<Array<Uri>>?,
+                          fileChooserParams: FileChooserParams?
+                      ): Boolean {
+                          fileUploadCallback = filePathCallback
                           val intent = Intent(Intent.ACTION_GET_CONTENT)
-                          intent.addCategory(Intent.CATEGORY_OPENABLE)
                           intent.type = "*/*"
                           fileChooserLauncher.launch(intent)
                           return true
                       }
                   }
-                  checkAndRequestPermissions()
-                  webView.loadUrl("${{ github.event.client_payload.app_url }}")
+
+                  // 5. Handle External Links & Apps
+                  webView.webViewClient = object : WebViewClient() {
+                      override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                          val url = request?.url.toString()
+                          
+                          // Keep app's own links inside WebView
+                          if (url.startsWith("http") || url.startsWith("https")) {
+                              if (url.contains(Uri.parse(targetUrl).host ?: "")) {
+                                  return false 
+                              }
+                              // Open other websites in external browser
+                              try {
+                                  val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                  startActivity(intent)
+                              } catch (e: Exception) {
+                                  e.printStackTrace()
+                              }
+                              return true
+                          } 
+                          
+                          // Handle Schemes (tel:, mailto:, whatsapp:, intent:)
+                          try {
+                              val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                              startActivity(intent)
+                              return true
+                          } catch (e: Exception) {
+                              // App not installed
+                              return true
+                          }
+                      }
+                  }
+
+                  webView.loadUrl(targetUrl)
               }
+
+              private fun createNotificationChannel() {
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                      val name = "App Notifications"
+                      val descriptionText = "Default Channel"
+                      val importance = NotificationManager.IMPORTANCE_HIGH
+                      val channel = NotificationChannel("DEFAULT_CHANNEL", name, importance).apply {
+                          description = descriptionText
+                          enableVibration(true) // Force Vibration
+                      }
+                      val notificationManager: NotificationManager =
+                          getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                      notificationManager.createNotificationChannel(channel)
+                  }
+              }
+
               private fun checkAndRequestPermissions() {
-                  val perms = mutableListOf<String>()
-                  try {
-                    val info = packageManager.getPackageInfo(packageName, PackageManager.GET_PERMISSIONS)
-                    info.requestedPermissions?.forEach { if (ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED) perms.add(it) }
-                  } catch (e: Exception) { }
-                  if (perms.isNotEmpty()) requestPermissionLauncher.launch(perms.toTypedArray())
+                  val permissionsToRequest = mutableListOf<String>()
+                  
+                  if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                      permissionsToRequest.add(Manifest.permission.CAMERA)
+                  }
+                  if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                      permissionsToRequest.add(Manifest.permission.RECORD_AUDIO)
+                  }
+                  if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                      permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
+                  }
+
+                  // Notification Permission for Android 13+
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                      if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                          permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
+                      }
+                  }
+                  
+                  if (permissionsToRequest.isNotEmpty()) {
+                      requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
+                  }
               }
-              override fun onBackPressed() { if (webView.canGoBack()) webView.goBack() else super.onBackPressed() }
+
+              override fun onBackPressed() {
+                  if (::webView.isInitialized && webView.canGoBack()) { // Check if webView is initialized
+                      webView.goBack()
+                  } else {
+                      super.onBackPressed()
+                  }
+              }
           }
           EOF
 
