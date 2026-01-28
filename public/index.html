@@ -553,52 +553,53 @@
         });
 
         async function startMonitoring(currentAppName, currentPkgName, runId, currentPerms) {
-            const statusTxt = document.getElementById('currentStatus');
-            const bar = document.getElementById('progressBar');
-            const resultArea = document.getElementById('resultArea');
-            const t = translations[currentLang];
-            
-            if(pollingInterval) clearInterval(pollingInterval);
+    const statusTxt = document.getElementById('currentStatus');
+    const bar = document.getElementById('progressBar');
+    const resultArea = document.getElementById('resultArea');
+    const t = translations[currentLang];
+    
+    if(pollingInterval) clearInterval(pollingInterval);
 
-            // مراقبة الـ Run ID المحدد فقط
-            pollingInterval = setInterval(async () => {
-                try {
-                    const res = await fetch(`/api/status/${runId}`);
-                    const data = await res.json();
+    pollingInterval = setInterval(async () => {
+        try {
+            const res = await fetch(`/api/status/${runId}`); // نراقب هذا الـ ID فقط
+            const data = await res.json();
 
-                    if(data.status === 'queued') {
-                        statusTxt.innerText = t.status_q; bar.style.width = '20%';
-                    } else if(data.status === 'in_progress' || data.status === 'waiting') {
-                        statusTxt.innerText = t.status_p; bar.style.width = '65%';
-                    } else if(data.status === 'completed') {
-                        clearInterval(pollingInterval);
-                        document.getElementById('submitBtn').disabled = false;
-                        
-                        if(data.conclusion === 'success') {
-                            statusTxt.innerText = t.status_s; bar.style.width = '100%';
-                            
-                            const repoOwner = "A78009866"; // استبدلها إذا تغير المالك
-                            const repoName = "Aite.studio"; // استبدلها إذا تغير الاسم
-                            
-                            const directLink = `https://github.com/${repoOwner}/${repoName}/releases/download/build-${runId}/app-debug.apk`;
-                            
-                            resultArea.innerHTML = `<a href="${directLink}" class="build-btn" style="background:var(--primary); color:black; text-decoration:none; margin-top: 10px;"><i class="fa-solid fa-cloud-arrow-down"></i> ${t.download_btn}</a>`;
-                            
-                            saveAppToHistory({
-                                appName: currentAppName,
-                                packageName: currentPkgName,
-                                permissions: currentPerms,
-                                downloadLink: directLink,
-                                iconBase64: uploadedBase64
-                            });
+            if(data.status === 'completed') {
+                clearInterval(pollingInterval);
+                document.getElementById('submitBtn').disabled = false;
+                
+                if(data.conclusion === 'success') {
+                    statusTxt.innerText = t.status_s;
+                    bar.style.width = '100%';
+                    
+                    // توليد رابط التحميل الخاص بهذا الـ Run ID حصرياً
+                    const repoOwner = "A78009866"; 
+                    const repoName = "Aite.studio"; 
+                    const directLink = `https://github.com/${repoOwner}/${repoName}/releases/download/build-${runId}/app-debug.apk`;
+                    
+                    resultArea.innerHTML = `<a href="${directLink}" class="build-btn" style="background:var(--primary); color:black; text-decoration:none; margin-top: 10px;"><i class="fa-solid fa-cloud-arrow-down"></i> ${t.download_btn}</a>`;
+                    
+                    // حفظ في الهوية (History) بالرابط الصحيح
+                    saveAppToHistory({
+                        appName: currentAppName,
+                        packageName: currentPkgName,
+                        permissions: currentPerms,
+                        downloadLink: directLink,
+                        iconBase64: uploadedBase64
+                    });
+                } else {
+                    statusTxt.innerText = t.status_f;
+                    bar.style.background = '#ff4444';
+                }
+            } else if(data.status === 'in_progress') {
+                statusTxt.innerText = t.status_p;
+                bar.style.width = '65%';
+            }
+        } catch(e) { console.error("Monitoring error:", e); }
+    }, 5000); 
+}
 
-                        } else {
-                            statusTxt.innerText = t.status_f; bar.style.background = '#ff4444';
-                        }
-                    }
-                } catch(e) { console.error(e); }
-            }, 6000); // كل 6 ثواني
-        }
 
         window.switchTab = function(tabName) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
