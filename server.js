@@ -3,6 +3,7 @@ const axios = require('axios');
 const cors = require('cors');
 const path = require('path');
 const cloudinary = require('cloudinary').v2;
+const { v4: uuidv4 } = require('uuid'); // Import uuid
 
 const app = express();
 
@@ -64,12 +65,14 @@ app.post('/api/build', async (req, res) => {
         // دمج الأذونات والتخصيصات في سلاسل نصية JSON لتقليل عدد الخصائص
         const permissionsJson = JSON.stringify(permissions);
         const customizationsJson = JSON.stringify(customizations);
+        const requestId = uuidv4(); // Generate a unique request ID
 
         await axios.post(
             `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/dispatches`,
             {
                 event_type: 'build-apk',
                 client_payload: {
+                    request_id: requestId, // Pass the unique request ID
                     app_name: appName,
                     package_name: packageName,
                     app_url: appUrl,
@@ -86,26 +89,8 @@ app.post('/api/build', async (req, res) => {
             }
         );
 
-        // ج. انتظار قليل والحصول على Run ID الخاص بهذه العملية تحديداً
-        setTimeout(async () => {
-            try {
-                const runs = await axios.get(
-                    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?event=repository_dispatch&per_page=5`,
-                    { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } }
-                );
-                
-                if (runs.data.workflow_runs.length > 0) {
-                    const runId = runs.data.workflow_runs[0].id;
-                    console.log(`🆔 تم تخصيص Run ID فريد لطلبك: ${runId}`);
-                    res.json({ success: true, run_id: runId });
-                } else {
-                    res.status(500).json({ error: "لم يتم العثور على العملية، حاول مجدداً" });
-                }
-            } catch (err) {
-                console.error("فشل في تتبع العملية بعد الإرسال:", err.message);
-                res.status(500).json({ error: "فشل في تتبع العملية" });
-            }
-        }, 4000);
+        console.log(`🆔 تم إرسال طلب البناء بمعرف: ${requestId}`);
+        res.json({ success: true, run_id: requestId }); // Return the request ID to the client
 
     } catch (error) {
         console.error("❌ Error during build request:", error.message);
@@ -120,21 +105,42 @@ app.post('/api/build', async (req, res) => {
 });
 
 // --- API: فحص الحالة برقم العملية (Fixes the issue) ---
-app.get('/api/status/:runId', async (req, res) => {
-    const { runId } = req.params;
+app.get('/api/status/:requestId', async (req, res) => {
+    const { requestId } = req.params;
     try {
-        const response = await axios.get(
-            `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs/${runId}`,
+        // Fetch recent repository_dispatch workflow runs
+        const runsResponse = await axios.get(
+            `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?event=repository_dispatch&per_page=20`, // Fetch more runs to increase chances
             { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } }
         );
-        
-        res.json({
-            status: response.data.status, // queued, in_progress, completed
-            conclusion: response.data.conclusion, // success, failure
-            run_id: response.data.id
-        });
+
+        let foundRun = null;
+        for (const run of runsResponse.data.workflow_runs) {
+            // Fetch details for each run to access client_payload
+            const runDetailsResponse = await axios.get(
+                `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs/${run.id}`,
+                { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } }
+            );
+            const clientPayload = runDetailsResponse.data.client_payload;
+            if (clientPayload && clientPayload.request_id === requestId) {
+                foundRun = runDetailsResponse.data;
+                break;
+            }
+        }
+
+        if (foundRun) {
+            res.json({
+                status: foundRun.status, // queued, in_progress, completed
+                conclusion: foundRun.conclusion, // success, failure
+                github_run_id: foundRun.id // Return the actual GitHub run ID
+            });
+        } else {
+            // If no matching run is found yet, assume it's queued or not started
+            res.json({ status: 'queued', conclusion: null, github_run_id: null });
+        }
+
     } catch (error) {
-        console.error(`Error checking status for ${runId}:`, error.message);
+        console.error(`Error checking status for request ${requestId}:`, error.message);
         res.status(500).json({ error: 'Could not fetch status' });
     }
 });
