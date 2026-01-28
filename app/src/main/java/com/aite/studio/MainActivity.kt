@@ -10,6 +10,8 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowManager
@@ -58,11 +60,12 @@ class MainActivity : AppCompatActivity() {
         // --- Customization Placeholders (Will be replaced by GitHub Actions) ---
         val enableZoom = "ENABLE_ZOOM_PLACEHOLDER".toBoolean()
         val enableTextSelection = "ENABLE_TEXT_SELECTION_PLACEHOLDER".toBoolean()
-        val enableFullScreen = "ENABLE_FULLSCREEN_PLACEHOLDER".toBoolean()
+        val enableSplashScreen = "ENABLE_SPLASH_SCREEN_PLACEHOLDER".toBoolean()
+        val enableFullScreen = "false".toBoolean() // Keeping this as false for now, can be added later
         val targetUrl = "WEB_URL_PLACEHOLDER"
         // ----------------------------------------------------------------------
 
-        // 1. Handle Fullscreen
+        // 1. Handle Fullscreen (if needed)
         if (enableFullScreen) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 window.insetsController?.hide(WindowInsets.Type.statusBars())
@@ -74,16 +77,33 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        setContentView(R.layout.activity_main)
+        if (enableSplashScreen && savedInstanceState == null) {
+            setContentView(R.layout.splash_screen)
+            Handler(Looper.getMainLooper()).postDelayed({
+                setupWebView(enableZoom, enableTextSelection, targetUrl)
+            }, 2000) // Display splash screen for 2 seconds
+        } else {
+            setupWebView(enableZoom, enableTextSelection, targetUrl)
+        }
         
         // 2. Setup Notifications Channel (With Vibration)
         createNotificationChannel()
+        checkAndRequestPermissions()
+    }
 
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun setupWebView(enableZoom: Boolean, enableTextSelection: Boolean, targetUrl: String) {
+        setContentView(R.layout.activity_main)
         webView = findViewById(R.id.webView)
         val settings = webView.settings
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.allowFileAccess = true
+        settings.allowContentAccess = true
+        settings.mediaPlaybackRequiresUserGesture = false
+        
+        val newUA = settings.userAgentString.replace("; wv", "")
+        settings.userAgentString = newUA
         
         // 3. Handle Zoom Customization
         settings.setSupportZoom(enableZoom)
@@ -93,7 +113,11 @@ class MainActivity : AppCompatActivity() {
         // 4. Handle Text Selection Customization
         if (!enableTextSelection) {
             webView.setOnLongClickListener { true } // Disables long press context menu
+            webView.isLongClickable = false // Also disable long click for text selection
             webView.isHapticFeedbackEnabled = false
+        } else {
+            webView.setOnLongClickListener(null)
+            webView.isLongClickable = true
         }
 
         webView.webChromeClient = object : WebChromeClient() {
@@ -146,11 +170,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if (savedInstanceState == null) {
-            webView.loadUrl(targetUrl)
-        }
-        
-        checkAndRequestPermissions()
+        webView.loadUrl(targetUrl)
     }
 
     private fun createNotificationChannel() {
@@ -189,12 +209,12 @@ class MainActivity : AppCompatActivity() {
         }
         
         if (permissionsToRequest.isNotEmpty()) {
-            requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
+            requestPermissionLauncher.launch(permissionsToTypedArray())
         }
     }
 
     override fun onBackPressed() {
-        if (webView.canGoBack()) {
+        if (::webView.isInitialized && webView.canGoBack()) { // Check if webView is initialized
             webView.goBack()
         } else {
             super.onBackPressed()
