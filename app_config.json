@@ -1,1 +1,10 @@
-
+{
+  "APP_NAME": "Qurer",
+  "PACKAGE_NAME": "com.qurer.app",
+  "APP_URL": "https://aite-studio.vercel.app/",
+  "ICON_URL": "https://res.cloudinary.com/duixjs8az/image/upload/v1770397907/apk_icons/com_qurer_app_icon.png",
+  "PERMISSIONS": "",
+  "CUSTOM_ZOOM": false,
+  "CUSTOM_SPLASH": false,
+  "TIMESTAMP": "2026-02-06T17:11:48.318Z"
+}
