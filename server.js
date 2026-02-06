@@ -4,7 +4,7 @@ const axios = require('axios');
 const cloudinary = require('cloudinary').v2;
 const path = require('path');
 
-// تحميل المتغيرات محلياً فقط (Vercel يقوم بذلك تلقائياً)
+// تحميل المتغيرات البيئية
 if (process.env.NODE_ENV !== 'production') {
     require('dotenv').config();
 }
@@ -12,76 +12,79 @@ if (process.env.NODE_ENV !== 'production') {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ==========================================
-// 1. إعدادات Cloudinary (تأكد من وجودها في Vercel)
-// ==========================================
+// إعدادات Cloudinary
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// ==========================================
-// 2. إعدادات السيرفر (توسيع الحدود للصور)
-// ==========================================
 app.use(cors());
-// هذا السطر يحل مشكلة 413 Payload Too Large
+// زيادة الحد المسموح به لاستقبال الصور الكبيرة
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('public'));
 
-// ==========================================
-// 3. نقطة الاتصال الرئيسية
-// ==========================================
 app.post('/api/build', async (req, res) => {
-    console.log("📥 Received Request at /api/build");
-    
-    // طباعة مفاتيح البيانات المستلمة للتأكد من تطابقها مع الفرونت إند
-    // سيظهر هذا في Vercel Logs
-    console.log("🔑 Data Keys:", Object.keys(req.body));
+    console.log("📥 Received Build Request");
 
-    // استخراج البيانات
-    const { app_name, package_name, icon_url } = req.body;
+    // 1. استقبال البيانات بنفس الأسماء التي يرسلها الـ Frontend (index.html)
+    const { 
+        appName, 
+        packageName, 
+        appUrl, 
+        iconBase64, 
+        permissions, 
+        customizations 
+    } = req.body;
 
-    // التحقق من المتغيرات البيئية (Environment Variables)
-    if (!process.env.CIRRUS_TOKEN || !process.env.CIRRUS_REPO_ID) {
-        console.error("❌ CRITICAL: Cirrus Env Variables Missing in Vercel!");
-        return res.status(500).json({ error: "Server misconfiguration (Missing Cirrus Keys)" });
-    }
-
-    // التحقق من البيانات القادمة من المستخدم
-    if (!app_name || !package_name || !icon_url) {
-        console.error("❌ Invalid Input:", req.body);
+    // التحقق من أن الحقول الأساسية موجودة
+    if (!appName || !packageName || !appUrl || !iconBase64) {
+        console.error("❌ Missing Fields:", Object.keys(req.body));
         return res.status(400).json({ 
             error: "Missing required fields", 
-            details: "Ensure app_name, package_name, and icon_url are sent." 
+            details: "Ensure appName, packageName, appUrl, and iconBase64 are sent." 
         });
     }
 
     try {
-        let finalIconUrl = icon_url;
+        let finalIconUrl = iconBase64;
 
-        // معالجة الصورة: إذا كانت Base64 نقوم برفعها
-        if (icon_url.startsWith('data:image') || icon_url.length > 500) {
-            console.log("🖼️ Detected Base64 Image. Uploading to Cloudinary...");
-            
-            if (!process.env.CLOUDINARY_CLOUD_NAME) {
-                 return res.status(500).json({ error: "Cloudinary keys missing in Vercel" });
-            }
-
-            const uploadResponse = await cloudinary.uploader.upload(icon_url, {
+        // 2. رفع الصورة إلى Cloudinary
+        if (iconBase64.startsWith('data:image') || iconBase64.length > 500) {
+            console.log("🖼️ Uploading Icon to Cloudinary...");
+            const uploadResponse = await cloudinary.uploader.upload(iconBase64, {
                 folder: "apk_builder_icons",
                 resource_type: "image",
-                public_id: `${package_name.replace(/\./g, '_')}_icon`
+                public_id: `${packageName.replace(/\./g, '_')}_icon`
             });
-            
             finalIconUrl = uploadResponse.secure_url;
             console.log("✅ Icon Uploaded:", finalIconUrl);
         }
 
-        // إرسال الأمر لـ Cirrus CI
-        console.log(`🚀 Triggering Build for ${app_name}...`);
-        
+        // 3. تجهيز المتغيرات (Environment Variables) لإرسالها لـ Cirrus CI
+        // نقوم بتحويل القيم المنطقية (true/false) إلى نصوص ("true"/"false")
+        const envVars = [
+            { name: "APP_NAME", value: appName },
+            { name: "PACKAGE_NAME", value: packageName },
+            { name: "APP_URL", value: appUrl },
+            { name: "ICON_URL", value: finalIconUrl },
+            
+            // الأذونات (Permissions)
+            { name: "PERM_CAMERA", value: String(permissions?.camera || false) },
+            { name: "PERM_MIC", value: String(permissions?.mic || false) },
+            { name: "PERM_LOCATION", value: String(permissions?.location || false) },
+            { name: "PERM_FILES", value: String(permissions?.files || false) },
+            { name: "PERM_NOTIFY", value: String(permissions?.notify || false) },
+
+            // التخصيصات (Customizations) - أضفناها هنا لكي تعمل الأزرار الجديدة
+            { name: "CUSTOM_ZOOM", value: String(customizations?.enableZoom || true) },
+            { name: "CUSTOM_TEXT_SELECTION", value: String(customizations?.enableTextSelection || true) },
+            { name: "CUSTOM_SPLASH", value: String(customizations?.enableSplashScreen || true) }
+        ];
+
+        console.log(`🚀 Triggering Build for ${appName}...`);
+
         const graphqlQuery = {
             query: `
                 mutation {
@@ -89,11 +92,7 @@ app.post('/api/build', async (req, res) => {
                         input: {
                             repositoryId: "${process.env.CIRRUS_REPO_ID}",
                             branch: "main",
-                            environmentVariables: [
-                                { name: "APP_NAME", value: "${app_name}" },
-                                { name: "PACKAGE_NAME", value: "${package_name}" },
-                                { name: "ICON_URL", value: "${finalIconUrl}" }
-                            ]
+                            environmentVariables: ${JSON.stringify(envVars).replace(/"name":/g, 'name:').replace(/"value":/g, 'value:')}
                         }
                     ) {
                         build {
@@ -113,10 +112,9 @@ app.post('/api/build', async (req, res) => {
             }
         });
 
-        // التعامل مع أخطاء Cirrus
         if (response.data.errors) {
             console.error("❌ Cirrus API Error:", response.data.errors);
-            return res.status(500).json({ error: "Cirrus CI rejected the request", details: response.data.errors });
+            return res.status(500).json({ error: "Cirrus CI rejected request", details: response.data.errors });
         }
 
         const buildData = response.data.data.createRepositoryBuild.build;
@@ -124,21 +122,68 @@ app.post('/api/build', async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: "Build started successfully",
-            build_id: buildData.id,
+            run_id: buildData.id, // Frontend expects 'run_id'
             tracking_url: buildData.webUrl
         });
 
     } catch (error) {
-        console.error("🔥 INTERNAL SERVER ERROR:", error.message);
+        console.error("🔥 Server Error:", error.message);
         res.status(500).json({ error: "Internal Server Error", message: error.message });
     }
 });
 
-app.get('/', (req, res) => {
-    res.send("APK Builder Server is Running 🚀");
+// نقطة لفحص حالة البناء (يستخدمها الـ Frontend للمراقبة)
+app.post('/api/status/:buildId', async (req, res) => { // يمكن استخدام GET أيضاً، لكن الكود الحالي قد يستخدم POST
+   // ... (يمكنك إضافة منطق الفحص هنا إذا لزم الأمر، أو الاعتماد على Webhooks)
+   // حالياً الـ Frontend يحاول الاتصال بـ /api/status/{id} لذا يجب توفيرها:
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+app.get('/api/status/:buildId', async (req, res) => {
+    const { buildId } = req.params;
+    try {
+        const query = {
+            query: `
+                query {
+                    build(id: "${buildId}") {
+                        status
+                        durationInSeconds
+                        artifacts {
+                            files { path, url }
+                        }
+                    }
+                }
+            `
+        };
+        
+        const response = await axios.post('https://api.cirrus-ci.com/graphql', query, {
+             headers: { 'Authorization': `Bearer ${process.env.CIRRUS_TOKEN}` }
+        });
+
+        const build = response.data.data.build;
+        
+        // البحث عن ملف APK في النتائج
+        let downloadUrl = null;
+        if (build.status === 'COMPLETED' || build.status === 'EXECUTING') {
+             // منطق استخراج رابط التحميل (يعتمد على كيفية تخزين Artifacts في Cirrus)
+             // هذا مجرد مثال مبسط
+             if (build.artifacts && build.artifacts.length > 0) {
+                 // ابحث عن ملف ينتهي بـ .apk
+                 // downloadUrl = ...
+             }
+        }
+
+        res.json({
+            status: build.status.toLowerCase(), // 'created', 'executing', 'completed', 'failed'
+            conclusion: build.status === 'COMPLETED' ? 'success' : null,
+            download_url: downloadUrl // سيرسله السيرفر عند الانتهاء
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
+
+app.get('/', (req, res) => {
+    res.send("Aite Studio Server is Running 🚀");
+});
+
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
