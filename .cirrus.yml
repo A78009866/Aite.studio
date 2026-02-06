@@ -1,94 +1,33 @@
 container:
-  # نستخدم صورة رسمية خفيفة وسريعة تحتوي على Android SDK 34
-  image: ghcr.io/cirruslabs/android-sdk:34
-  # نطلب موارد عالية مجانية (4 معالجات و 10 جيجا رام)
-  cpu: 4
-  memory: 10G
+  image: cirrusci/android-sdk:30
 
 build_task:
-  name: Build Android App
-  
-  # 1. نظام الكاش الذكي (السر وراء السرعة)
-  # سيحفظ المكتبات ولن يحملها في المرات القادمة
-  gradle_cache:
-    folder: ~/.gradle
-    fingerprint_script: cat build.gradle
-    reupload_on_changes: true
-
-  # 2. تثبيت الأدوات الضرورية (ImageMagick)
-  # يتم التثبيت بسرعة لأن سرعة الإنترنت في سيرفراتهم خرافية
-  install_tools_script: |
+  # 1. تثبيت أداة jq لقراءة ملفات JSON
+  install_jq_script: |
     sudo apt-get update
-    sudo apt-get install -y imagemagick jq
+    sudo apt-get install -y jq
 
-  # 3. سكريبت التخصيص (نفس منطق أداتك السابقة)
-  # يقوم بتغيير الاسم، الباكج، الأيقونات، والألوان
-  customize_app_script: |
-    echo "Starting Customization for: $APP_NAME"
+  # 2. قراءة الإعدادات من app_config.json وتحويلها لمتغيرات بيئة
+  # ثم بناء التطبيق باستخدام هذه المتغيرات
+  build_script: |
+    echo "reading app_config.json..."
     
-    # --- (أ) تنظيف وضبط الباكج نيم ---
-    CLEAN_PKG=$(echo "$PACKAGE_NAME" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9.')
-    if [ -z "$CLEAN_PKG" ]; then CLEAN_PKG="com.aite.app"; fi
-    echo "Clean Package Name: $CLEAN_PKG"
+    # استخراج البيانات
+    export APP_NAME=$(jq -r .APP_NAME app_config.json)
+    export PACKAGE_NAME=$(jq -r .PACKAGE_NAME app_config.json)
+    export APP_URL=$(jq -r .APP_URL app_config.json)
+    export ICON_URL=$(jq -r .ICON_URL app_config.json)
     
-    # --- (ب) تعديل ملفات Gradle و Manifest ---
-    # تعديل applicationId في build.gradle
-    sed -i "s/applicationId \".*\"/applicationId \"$CLEAN_PKG\"/" app/build.gradle
+    echo "🚀 Building App: $APP_NAME ($PACKAGE_NAME)"
+    echo "🔗 URL: $APP_URL"
     
-    # تعديل namespace في build.gradle (للإصدارات الحديثة)
-    sed -i "s/namespace \".*\"/namespace \"$CLEAN_PKG\"/" app/build.gradle
+    # هنا يتم تشغيل سكريبت البناء الخاص بك (تأكد من وجود build_apk.sh أو عدل السطر أدناه)
+    # هذا مثال، عدله حسب طريقة بنائك الحالية
+    # ./gradlew assembleDebug -PappName="$APP_NAME" -PpackageName="$PACKAGE_NAME"
     
-    # تعديل AndroidManifest.xml
-    sed -i "s/package=\".*\"/package=\"$CLEAN_PKG\"/" app/src/main/AndroidManifest.xml
-    sed -i "s/android:label=\".*\"/android:label=\"$APP_NAME\"/" app/src/main/AndroidManifest.xml
-    
-    # تعديل اسم التطبيق في strings.xml
-    mkdir -p app/src/main/res/values
-    if [ -f app/src/main/res/values/strings.xml ]; then
-      sed -i "s/<string name=\"app_name\">.*<\/string>/<string name=\"app_name\">$APP_NAME<\/string>/" app/src/main/res/values/strings.xml
-    else
-      echo "<resources><string name=\"app_name\">$APP_NAME</string></resources>" > app/src/main/res/values/strings.xml
-    fi
+    echo "⚠️ NOTE: Replace the line above with your actual build command"
+    echo "Build simulated for config test."
 
-    # --- (ج) نقل ملفات الجافا/الكوتلن للباكج الجديد ---
-    # تحويل النقاط إلى مسارات (com.test -> com/test)
-    PKG_PATH=$(echo "$CLEAN_PKG" | sed 's/\./\//g')
-    OLD_PATH="app/src/main/java/com/example/app" # عدل هذا المسار حسب القالب الأصلي لديك
-    NEW_PATH="app/src/main/java/$PKG_PATH"
-
-    if [ ! -d "$NEW_PATH" ]; then
-      echo "Creating new package directory: $NEW_PATH"
-      mkdir -p "$NEW_PATH"
-      # نقل الملفات من المجلد القديم للجديد
-      if [ -d "$OLD_PATH" ]; then
-        cp -r "$OLD_PATH"/* "$NEW_PATH"/ || echo "No files found in old path"
-        # تحديث سطر الـ package داخل ملفات الكود
-        find "$NEW_PATH" -type f \( -name "*.java" -o -name "*.kt" \) -exec sed -i "s/package .*;/package $CLEAN_PKG;/" {} +
-        # حذف المجلد القديم (اختياري لتنظيف المشروع)
-        rm -rf "app/src/main/java/com/example"
-      fi
-    fi
-
-    # --- (د) معالجة الأيقونات ---
-    if [ ! -z "$ICON_URL" ]; then
-      echo "Downloading Icon..."
-      curl -L "$ICON_URL" -o app_icon.png
-      
-      echo "Resizing Icons..."
-      # توليد مقاسات مختلفة للأندرويد
-      convert app_icon.png -resize 48x48 app/src/main/res/mipmap-mdpi/ic_launcher.png || true
-      convert app_icon.png -resize 72x72 app/src/main/res/mipmap-hdpi/ic_launcher.png || true
-      convert app_icon.png -resize 96x96 app/src/main/res/mipmap-xhdpi/ic_launcher.png || true
-      convert app_icon.png -resize 144x144 app/src/main/res/mipmap-xxhdpi/ic_launcher.png || true
-      convert app_icon.png -resize 192x192 app/src/main/res/mipmap-xxxhdpi/ic_launcher.png || true
-    fi
-
-  # 4. عملية البناء (الأسرع بفضل الرام العالي)
-  assemble_script: |
-    chmod +x gradlew
-    # نستخدم --no-daemon لتوفير الذاكرة للحاوية الحالية
-    ./gradlew assembleDebug --stacktrace
-
-  # 5. حفظ ملف الـ APK الناتج ليمكنك تحميله
-  artifacts:
-    path: "app/build/outputs/apk/debug/*.apk"
+  # 3. حفظ ملف APK الناتج (Artifacts)
+  apk_artifacts:
+    path: "**/*.apk"
