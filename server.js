@@ -1,10 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-const cloudinary = require('cloudinary').v2; // استدعاء مكتبة Cloudinary
+const cloudinary = require('cloudinary').v2;
 const path = require('path');
 
-// تحميل dotenv فقط في البيئة المحلية
+// تحميل المتغيرات محلياً فقط (Vercel يقوم بذلك تلقائياً)
 if (process.env.NODE_ENV !== 'production') {
     require('dotenv').config();
 }
@@ -12,88 +12,87 @@ if (process.env.NODE_ENV !== 'production') {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ========================================================
-// 1. إعدادات Cloudinary (تأكد من إضافتها في Vercel)
-// ========================================================
+// ==========================================
+// 1. إعدادات Cloudinary (تأكد من وجودها في Vercel)
+// ==========================================
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// ========================================================
-// 2. إعدادات السيرفر (زيادة الحجم لـ 50 ميجا)
-// ========================================================
+// ==========================================
+// 2. إعدادات السيرفر (توسيع الحدود للصور)
+// ==========================================
 app.use(cors());
-// هذا هو الحل الجذري لمشكلة Payload Too Large
-app.use(express.json({ limit: '50mb' })); 
+// هذا السطر يحل مشكلة 413 Payload Too Large
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('public'));
 
-// استدعاء متغيرات Cirrus
-const CIRRUS_TOKEN = process.env.CIRRUS_TOKEN;
-const REPO_ID = process.env.CIRRUS_REPO_ID;
-
+// ==========================================
+// 3. نقطة الاتصال الرئيسية
+// ==========================================
 app.post('/api/build', async (req, res) => {
-    console.log("📥 New Build Request Received");
+    console.log("📥 Received Request at /api/build");
+    
+    // طباعة مفاتيح البيانات المستلمة للتأكد من تطابقها مع الفرونت إند
+    // سيظهر هذا في Vercel Logs
+    console.log("🔑 Data Keys:", Object.keys(req.body));
 
-    // التحقق من وجود كل المفاتيح الضرورية
-    if (!CIRRUS_TOKEN || !REPO_ID || !process.env.CLOUDINARY_CLOUD_NAME) {
-        console.error("❌ ERROR: Missing Environment Variables");
-        return res.status(500).json({ 
-            error: 'Server Config Error: Please check Vercel Environment Variables (Cirrus & Cloudinary).' 
-        });
+    // استخراج البيانات
+    const { app_name, package_name, icon_url } = req.body;
+
+    // التحقق من المتغيرات البيئية (Environment Variables)
+    if (!process.env.CIRRUS_TOKEN || !process.env.CIRRUS_REPO_ID) {
+        console.error("❌ CRITICAL: Cirrus Env Variables Missing in Vercel!");
+        return res.status(500).json({ error: "Server misconfiguration (Missing Cirrus Keys)" });
     }
 
-    // استقبال البيانات (لاحظ: icon_url هنا قد يحتوي على Base64)
-    let { app_name, package_name, icon_url } = req.body;
-
+    // التحقق من البيانات القادمة من المستخدم
     if (!app_name || !package_name || !icon_url) {
-        return res.status(400).json({ error: 'Missing required fields' });
+        console.error("❌ Invalid Input:", req.body);
+        return res.status(400).json({ 
+            error: "Missing required fields", 
+            details: "Ensure app_name, package_name, and icon_url are sent." 
+        });
     }
 
     try {
         let finalIconUrl = icon_url;
 
-        // ========================================================
-        // 3. رفع الصورة إلى Cloudinary (إذا كانت Base64)
-        // ========================================================
-        // نتحقق: هل النص طويل جداً ويبدأ بـ data:image؟ إذن هو صورة خام
-        if (icon_url.length > 500 || icon_url.startsWith('data:image')) {
-            console.log("🖼️  Uploading Icon to Cloudinary...");
-            try {
-                const uploadResponse = await cloudinary.uploader.upload(icon_url, {
-                    folder: "apk-builder-icons",
-                    public_id: `${package_name.replace(/\./g, '_')}_icon`,
-                    overwrite: true,
-                    resource_type: "image"
-                });
-                finalIconUrl = uploadResponse.secure_url; // الرابط الجديد القصير
-                console.log(`✅ Icon Uploaded: ${finalIconUrl}`);
-            } catch (uploadError) {
-                console.error("❌ Cloudinary Upload Failed:", uploadError.message);
-                return res.status(500).json({ error: 'Failed to upload icon image', details: uploadError.message });
+        // معالجة الصورة: إذا كانت Base64 نقوم برفعها
+        if (icon_url.startsWith('data:image') || icon_url.length > 500) {
+            console.log("🖼️ Detected Base64 Image. Uploading to Cloudinary...");
+            
+            if (!process.env.CLOUDINARY_CLOUD_NAME) {
+                 return res.status(500).json({ error: "Cloudinary keys missing in Vercel" });
             }
-        } else {
-            console.log("ℹ️  Using provided URL directly (no upload needed).");
+
+            const uploadResponse = await cloudinary.uploader.upload(icon_url, {
+                folder: "apk_builder_icons",
+                resource_type: "image",
+                public_id: `${package_name.replace(/\./g, '_')}_icon`
+            });
+            
+            finalIconUrl = uploadResponse.secure_url;
+            console.log("✅ Icon Uploaded:", finalIconUrl);
         }
 
-        // ========================================================
-        // 4. إرسال الرابط الجديد إلى Cirrus CI
-        // ========================================================
-        console.log(`🚀 Triggering Cirrus Build for: ${app_name}`);
+        // إرسال الأمر لـ Cirrus CI
+        console.log(`🚀 Triggering Build for ${app_name}...`);
         
         const graphqlQuery = {
             query: `
                 mutation {
                     createRepositoryBuild(
                         input: {
-                            repositoryId: "${REPO_ID}",
+                            repositoryId: "${process.env.CIRRUS_REPO_ID}",
                             branch: "main",
                             environmentVariables: [
                                 { name: "APP_NAME", value: "${app_name}" },
                                 { name: "PACKAGE_NAME", value: "${package_name}" },
-                                { name: "ICON_URL", value: "${finalIconUrl}" } 
+                                { name: "ICON_URL", value: "${finalIconUrl}" }
                             ]
                         }
                     ) {
@@ -109,39 +108,37 @@ app.post('/api/build', async (req, res) => {
 
         const response = await axios.post('https://api.cirrus-ci.com/graphql', graphqlQuery, {
             headers: {
-                'Authorization': `Bearer ${CIRRUS_TOKEN}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
+                'Authorization': `Bearer ${process.env.CIRRUS_TOKEN}`,
+                'Content-Type': 'application/json'
             }
         });
 
+        // التعامل مع أخطاء Cirrus
         if (response.data.errors) {
-            console.error('❌ Cirrus API Error:', JSON.stringify(response.data.errors));
-            return res.status(500).json({ error: 'Failed to trigger build on Cirrus CI', details: response.data.errors });
+            console.error("❌ Cirrus API Error:", response.data.errors);
+            return res.status(500).json({ error: "Cirrus CI rejected the request", details: response.data.errors });
         }
 
         const buildData = response.data.data.createRepositoryBuild.build;
-        console.log(`✅ Build Queued! ID: ${buildData.id}`);
+        console.log(`✅ SUCCESS! Build ID: ${buildData.id}`);
 
         res.status(200).json({
-            message: 'Build started successfully',
+            success: true,
+            message: "Build started successfully",
             build_id: buildData.id,
-            tracking_url: buildData.webUrl,
-            status: 'queued',
-            icon_processed: finalIconUrl
+            tracking_url: buildData.webUrl
         });
 
     } catch (error) {
-        console.error('❌ Server Internal Error:', error.message);
-        res.status(500).json({ error: 'Internal Server Error', details: error.message });
+        console.error("🔥 INTERNAL SERVER ERROR:", error.message);
+        res.status(500).json({ error: "Internal Server Error", message: error.message });
     }
 });
 
-// الصفحة الرئيسية
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.send("APK Builder Server is Running 🚀");
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
