@@ -3,7 +3,7 @@ const cors = require('cors');
 const axios = require('axios');
 const cloudinary = require('cloudinary').v2;
 
-// تحميل المتغيرات البيئية
+// تحميل dotenv فقط محلياً
 if (process.env.NODE_ENV !== 'production') {
     require('dotenv').config();
 }
@@ -19,12 +19,11 @@ cloudinary.config({
 });
 
 app.use(cors());
-// السماح بأحجام كبيرة للصور
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.post('/api/build', async (req, res) => {
-    console.log("📥 Received Build Request (GitHub Strategy)");
+    console.log("📥 Received Build Request via GitHub Trigger");
 
     const { 
         appName, 
@@ -35,7 +34,6 @@ app.post('/api/build', async (req, res) => {
         customizations 
     } = req.body;
 
-    // التحقق من البيانات
     if (!appName || !packageName || !appUrl || !iconBase64) {
         return res.status(400).json({ error: "Missing required fields" });
     }
@@ -43,84 +41,68 @@ app.post('/api/build', async (req, res) => {
     try {
         let finalIconUrl = iconBase64;
 
-        // 1. رفع الصورة إلى Cloudinary
+        // 1. رفع الصورة
         if (iconBase64.startsWith('data:image')) {
             console.log("🖼️ Uploading Icon...");
             const uploadResponse = await cloudinary.uploader.upload(iconBase64, {
-                folder: "apk_builder_icons",
+                folder: "apk_icons",
                 public_id: `${packageName.replace(/\./g, '_')}_icon`,
                 overwrite: true
             });
             finalIconUrl = uploadResponse.secure_url;
-            console.log("✅ Icon Uploaded:", finalIconUrl);
         }
 
-        // 2. تجهيز ملف الإعدادات (JSON)
-        // هذا الملف سيتم حفظه في GitHub ليقرأه Cirrus CI
+        // 2. تجهيز ملف الإعدادات JSON
         const appConfig = {
-            app_name: appName,
-            package_name: packageName,
-            app_url: appUrl,
-            icon_url: finalIconUrl,
-            permissions: {
-                camera: permissions?.camera || false,
-                mic: permissions?.mic || false,
-                location: permissions?.location || false,
-                files: permissions?.files || false,
-                notify: permissions?.notify || false
-            },
-            customizations: {
-                zoom: customizations?.enableZoom || true,
-                text_selection: customizations?.enableTextSelection || true,
-                splash: customizations?.enableSplashScreen || true
-            },
-            build_timestamp: new Date().toISOString() // لضمان تغيير محتوى الملف دائماً
+            APP_NAME: appName,
+            PACKAGE_NAME: packageName,
+            APP_URL: appUrl,
+            ICON_URL: finalIconUrl,
+            // تحويل الأذونات إلى صيغة بسيطة
+            PERMISSIONS: Object.keys(permissions || {}).filter(k => permissions[k]).join(','), 
+            CUSTOM_ZOOM: customizations?.enableZoom || false,
+            CUSTOM_SPLASH: customizations?.enableSplashScreen || false,
+            TIMESTAMP: new Date().toISOString()
         };
 
         // 3. تحديث الملف في GitHub
-        const githubUser = process.env.GITHUB_USERNAME;
-        const githubRepo = process.env.GITHUB_REPO;
-        const githubToken = process.env.GITHUB_TOKEN;
-        const filePath = 'app_config.json'; // اسم الملف في المستودع
+        // استخدام الأسماء الموجودة في صورتك (REPO_OWNER, REPO_NAME)
+        const owner = process.env.REPO_OWNER;
+        const repo = process.env.REPO_NAME;
+        const token = process.env.GITHUB_TOKEN;
+        const path = 'app_config.json';
         
-        const apiUrl = `https://api.github.com/repos/${githubUser}/${githubRepo}/contents/${filePath}`;
+        const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
 
-        // أ. جلب الـ SHA الحالي للملف (مطلوب للتحديث)
+        // جلب SHA للملف الحالي (لتحديثه)
         let sha = null;
         try {
-            const getFile = await axios.get(apiUrl, {
-                headers: { Authorization: `token ${githubToken}` }
-            });
-            sha = getFile.data.sha;
-        } catch (err) {
-            console.log("ℹ️ File does not exist yet, creating new one.");
-        }
+            const { data } = await axios.get(apiUrl, { headers: { Authorization: `token ${token}` } });
+            sha = data.sha;
+        } catch (e) { /* الملف غير موجود، سننشئه */ }
 
-        // ب. تحديث الملف (Commit)
-        const contentBase64 = Buffer.from(JSON.stringify(appConfig, null, 2)).toString('base64');
-        
+        // التحديث أو الإنشاء
         await axios.put(apiUrl, {
             message: `🚀 Build Trigger: ${appName}`,
-            content: contentBase64,
-            sha: sha // إذا كان null سيقوم بإنشاء ملف جديد
+            content: Buffer.from(JSON.stringify(appConfig, null, 2)).toString('base64'),
+            sha: sha
         }, {
-            headers: { Authorization: `token ${githubToken}` }
+            headers: { Authorization: `token ${token}` }
         });
 
-        console.log("✅ GitHub File Updated -> Build Triggered!");
+        console.log("✅ app_config.json updated on GitHub");
 
         res.status(200).json({
             success: true,
-            message: "Build request sent to GitHub",
-            tracking_url: `https://github.com/${githubUser}/${githubRepo}/actions` // أو رابط Cirrus إذا كنت تعرفه
+            message: "Build triggered successfully",
+            tracking_url: `https://cirrus-ci.com/github/${owner}/${repo}`
         });
 
     } catch (error) {
-        console.error("🔥 Server Error:", error.response?.data || error.message);
-        res.status(500).json({ error: "Failed to trigger build via GitHub", details: error.message });
+        console.error("🔥 Error:", error.response?.data || error.message);
+        res.status(500).json({ error: "Failed to trigger build" });
     }
 });
 
-app.get('/', (req, res) => res.send("Aite Studio Server (GitHub Mode) is Running 🚀"));
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.get('/', (req, res) => res.send("Server Running"));
+app.listen(PORT, () => console.log(`Server on ${PORT}`));
