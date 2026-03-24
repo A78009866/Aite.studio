@@ -151,7 +151,7 @@
             <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">أهلا بك !</h2>
             <p style="color: var(--text-muted);">سجل الدخول للبدأ في بناء التطبيقات .</p>
             <button class="google-btn" id="loginBtn">
-                <img src="https://www.gstatic.com/firebasejs/9.22.0/firebase-ui-auth.js" width="20">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20">
                 تسجيل الدخول عبر Google
             </button>
         </div>
@@ -309,7 +309,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
         import { getDatabase, ref, push, onValue, remove, set } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
         // Config Firebase
@@ -385,11 +385,18 @@ const translations = {
 };
         let currentLang = 'ar';
 
-        // Auth Listeners
+        // Auth Listeners - use signInWithRedirect for WebView compatibility
         document.getElementById('loginBtn').addEventListener('click', () => {
-            signInWithPopup(auth, provider).catch((error) => showToast("Error: " + error.message));
+            signInWithRedirect(auth, provider).catch((error) => showToast("Error: " + error.message));
         });
         document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+        // Handle redirect result
+        getRedirectResult(auth).catch((error) => {
+            if (error.code !== 'auth/redirect-cancelled-by-user') {
+                console.error("Redirect error:", error);
+            }
+        });
 
         onAuthStateChanged(auth, (user) => {
             document.getElementById('loadingOverlay').style.display = 'none';
