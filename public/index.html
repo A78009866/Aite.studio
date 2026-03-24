@@ -137,6 +137,58 @@
         .toast.show { opacity: 1; bottom: 45px; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         footer { text-align: center; padding: 3rem; color: #333; font-size: 0.9rem; border-top: 1px solid #1a1a1a; margin-top: 2rem; }
+
+        /* ===== Responsive / WebView / Mobile Fixes ===== */
+        @media (max-width: 768px) {
+            .navbar { padding: 1rem; flex-wrap: wrap; gap: 10px; }
+            .brand { font-size: 1.4rem; }
+            .nav-controls { gap: 10px; }
+            .lang-btn { padding: 6px 10px; font-size: 0.8rem; }
+            .user-avatar { width: 36px; height: 36px; }
+
+            .dashboard-tabs { margin: 1rem auto; padding: 4px; }
+            .tab-btn { padding: 10px 18px; font-size: 0.85rem; }
+
+            .main-container { padding: 1rem; gap: 1.5rem; flex-direction: column; }
+            .config-panel { min-width: unset; max-width: 100%; width: 100%; }
+            h2 { font-size: 1.6rem; }
+            .subtitle { margin-bottom: 1.5rem; font-size: 0.9rem; }
+            .input-field { padding: 12px; font-size: 0.95rem; margin-bottom: 1rem; }
+            .permissions-grid { grid-template-columns: 1fr; gap: 10px; }
+            .toggle-container { padding: 10px 14px; }
+            .build-btn { padding: 14px; font-size: 1rem; }
+
+            .preview-panel { min-width: unset; width: 100%; }
+            .phone-frame { width: 260px; height: 520px; border-radius: 35px; border-width: 8px; margin: 0 auto; }
+            .app-icon-display, .icon-placeholder { width: 70px; height: 70px; border-radius: 18px; }
+            .app-name-display { font-size: 1.1rem; }
+
+            .apps-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); padding: 1rem; gap: 15px; }
+            .app-card { padding: 15px; }
+            .app-card img { width: 55px; height: 55px; }
+
+            .modal-content { padding: 1.5rem; width: 95%; }
+            .crop-container { height: 250px; }
+
+            .login-card { padding: 2rem; width: 95%; }
+
+            footer { padding: 1.5rem; font-size: 0.8rem; }
+        }
+
+        @media (max-width: 420px) {
+            .navbar { padding: 0.8rem; }
+            .brand { font-size: 1.2rem; }
+            .dashboard-tabs { flex-wrap: wrap; border-radius: 16px; }
+            .tab-btn { padding: 8px 14px; font-size: 0.8rem; flex: 1; text-align: center; }
+            .main-container { padding: 0.75rem; }
+            h2 { font-size: 1.3rem; }
+            .phone-frame { width: 220px; height: 440px; border-radius: 30px; border-width: 6px; }
+            .app-icon-display, .icon-placeholder { width: 60px; height: 60px; }
+            .app-name-display { font-size: 1rem; }
+            .apps-grid { grid-template-columns: 1fr; }
+            .upload-box { padding: 1rem; }
+            .input-field { padding: 10px; font-size: 0.9rem; }
+        }
     </style>
 </head>
 <body>
