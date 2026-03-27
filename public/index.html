@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aite.studio | App Builder</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Outfit:wght@300;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <style>
@@ -143,7 +143,7 @@
         .offline-tabs { display: flex; gap: 0; margin-bottom: 0; }
         .offline-tab-btn { background: transparent; border: 1px solid var(--border); border-bottom: none; color: #666; padding: 10px 20px; cursor: pointer; font-size: 0.9rem; font-weight: 600; font-family: var(--font-ar); transition: 0.3s; border-radius: 8px 8px 0 0; margin-left: -1px; }
         .offline-tab-btn:first-child { margin-left: 0; }
-        .offline-tab-btn.active { background: #1a1a2e; color: var(--primary); border-color: var(--primary); border-bottom: 1px solid #1a1a2e; margin-bottom: -1px; z-index: 1; }
+        .offline-tab-btn.active { background: #2d2a2e; color: #ffd866; border-color: #ffd866; border-bottom: 1px solid #2d2a2e; margin-bottom: -1px; z-index: 1; }
         .offline-tab-content { display: none; }
         .offline-tab-content.active { display: block; }
         .offline-phone-frame { width: 100%; max-width: 340px; margin: 0 auto; background: #000; border-radius: 45px; border: 12px solid #1f1f1f; position: relative; overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,0.7); }
@@ -151,22 +151,24 @@
         .offline-phone-screen { width: 100%; min-height: 580px; max-height: 630px; overflow: auto; position: relative; }
         /* Code editor with syntax highlighting */
         .code-editor-wrap { position: relative; width: 100%; min-height: 580px; }
-        #offlineCodeHighlight { position: absolute; top: 0; left: 0; right: 0; bottom: 0; padding: 50px 14px 14px 14px; font-family: 'Courier New', Consolas, monospace; font-size: 12px; line-height: 1.7; white-space: pre-wrap; word-wrap: break-word; color: #abb2bf; background: #1a1a2e; pointer-events: none; overflow: auto; direction: ltr; text-align: left; }
-        #offlineCodeEditor { position: absolute; top: 0; left: 0; width: 100%; height: 100%; min-height: 580px; background: transparent; color: transparent; caret-color: #fff; border: none; padding: 50px 14px 14px 14px; font-family: 'Courier New', Consolas, monospace; font-size: 12px; resize: none; direction: ltr; text-align: left; line-height: 1.7; z-index: 2; white-space: pre-wrap; word-wrap: break-word; overflow: auto; }
+        #offlineCodeHighlight { position: absolute; top: 0; left: 0; right: 0; bottom: 0; padding: 50px 14px 14px 14px; font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', Consolas, monospace; font-size: 12px; line-height: 1.7; white-space: pre-wrap; word-wrap: break-word; color: #fcfcfa; background: #2d2a2e; pointer-events: none; overflow: auto; direction: ltr; text-align: left; }
+        #offlineCodeEditor { position: absolute; top: 0; left: 0; width: 100%; height: 100%; min-height: 580px; background: transparent; color: transparent; caret-color: #ffd866; border: none; padding: 50px 14px 14px 14px; font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', Consolas, monospace; font-size: 12px; resize: none; direction: ltr; text-align: left; line-height: 1.7; z-index: 2; white-space: pre-wrap; word-wrap: break-word; overflow: auto; }
         #offlineCodeEditor:focus { outline: none; }
-        #offlineCodeEditor::selection { background: rgba(0, 230, 118, 0.25); }
-        /* Syntax colors */
-        .hl-tag { color: #e06c75; }
-        .hl-attr { color: #d19a66; }
-        .hl-val { color: #98c379; }
-        .hl-str { color: #98c379; }
-        .hl-doctype { color: #c678dd; }
-        .hl-comment { color: #5c6370; font-style: italic; }
-        .hl-css-prop { color: #56b6c2; }
-        .hl-css-val { color: #d19a66; }
-        .hl-css-sel { color: #e06c75; }
-        .hl-entity { color: #c678dd; }
-        .hl-text { color: #abb2bf; }
+        #offlineCodeEditor::selection { background: rgba(255, 216, 102, 0.25); }
+        /* Syntax colors - Monokai Pro inspired */
+        .hl-tag { color: #ff6188; font-weight: 500; }
+        .hl-attr { color: #78dce8; }
+        .hl-val { color: #a9dc76; }
+        .hl-str { color: #a9dc76; }
+        .hl-doctype { color: #ab9df2; font-weight: 600; }
+        .hl-comment { color: #727072; font-style: italic; }
+        .hl-css-prop { color: #78dce8; }
+        .hl-css-val { color: #fc9867; }
+        .hl-css-sel { color: #ffd866; }
+        .hl-entity { color: #ab9df2; }
+        .hl-text { color: #fcfcfa; }
+        .hl-bracket { color: #939293; }
+        .hl-punct { color: #939293; }
         /* Preview phone frame */
         #offlinePreviewFrame { width: 100%; min-height: 580px; border: none; background: white; display: block; }
         /* ----------------------------------- */
@@ -924,54 +926,55 @@ const translations = {
         window.showToast = function(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 4000); }
         setInterval(() => { const now = new Date(); document.getElementById('phoneTime').innerText = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0'); }, 1000);
 
-        // --- Direct Download Function ---
-        window.directDownload = async function(url, appName) {
-            try {
-                showToast(currentLang === 'ar' ? 'جاري تحميل الملف...' : 'Downloading file...');
-                const response = await fetch(url);
-                if (!response.ok) throw new Error('Download failed');
-                const blob = await response.blob();
-                const blobUrl = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = blobUrl;
-                a.download = (appName || 'app') + '.apk';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(blobUrl);
-            } catch(e) {
-                // Fallback: open in new tab if fetch fails (CORS)
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = (appName || 'app') + '.apk';
-                a.target = '_blank';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            }
+        // --- Direct Download Function (via server proxy to bypass CORS) ---
+        window.directDownload = function(url, appName) {
+            showToast(currentLang === 'ar' ? 'جاري تحميل الملف...' : 'Downloading file...');
+            const proxyUrl = `/api/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(appName || 'app')}`;
+            const a = document.createElement('a');
+            a.href = proxyUrl;
+            a.download = (appName || 'app') + '.apk';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
 
-        // --- HTML Syntax Highlighter ---
+        // --- HTML Syntax Highlighter (Monokai Pro) ---
         function highlightHTML(code) {
+            // Escape HTML
             let html = code
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
-            // Comments
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+            
+            // Comments <!-- ... -->
             html = html.replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="hl-comment">$1</span>');
+            
             // DOCTYPE
-            html = html.replace(/(&lt;!DOCTYPE\s+[^&]*&gt;)/gi, '<span class="hl-doctype">$1</span>');
-            // HTML entities like &#128268;
-            html = html.replace(/(&#?[a-zA-Z0-9]+;)/g, '<span class="hl-entity">$1</span>');
-            // Tags with attributes
-            html = html.replace(/(&lt;\/?)([a-zA-Z][a-zA-Z0-9]*)((?:\s+[^&]*?)*?)(\s*\/?)(&gt;)/g, function(m, open, tag, attrs, selfClose, close) {
-                let attrStr = attrs.replace(/([a-zA-Z\-]+)(=)(&quot;|&#39;|"|\')?([^&]*?)(&quot;|&#39;|"|\'|(?=\s|$))/g, 
-                    '<span class="hl-attr">$1</span>$2<span class="hl-val">$3$4$5</span>');
-                return '<span class="hl-tag">' + open + tag + '</span>' + attrStr + '<span class="hl-tag">' + selfClose + close + '</span>';
+            html = html.replace(/(&lt;!DOCTYPE[^&]*&gt;)/gi, '<span class="hl-doctype">$1</span>');
+            
+            // HTML tags with attributes
+            html = html.replace(/(&lt;\/?)([a-zA-Z][a-zA-Z0-9-]*)((?:[^&]|&(?!gt;))*?)(\/?)(>|&gt;)/g, function(m, open, tag, attrs, selfClose, close) {
+                // Highlight attributes: name="value"
+                let attrStr = attrs.replace(/([a-zA-Z\-:]+)(\s*=\s*)(&quot;)(.*?)(&quot;)/g,
+                    '<span class="hl-attr">$1</span><span class="hl-punct">$2</span><span class="hl-val">$3$4$5</span>');
+                // Highlight attributes without quotes
+                attrStr = attrStr.replace(/([a-zA-Z\-:]+)(\s*=\s*)([^\s&]+)/g,
+                    '<span class="hl-attr">$1</span><span class="hl-punct">$2</span><span class="hl-val">$3</span>');
+                return '<span class="hl-bracket">' + open + '</span><span class="hl-tag">' + tag + '</span>' + attrStr + '<span class="hl-bracket">' + selfClose + close + '</span>';
             });
-            // CSS inside style blocks - property: value;
-            html = html.replace(/([a-z\-]+)(\s*:\s*)([^;{}<]+)(;)/g, 
-                '<span class="hl-css-prop">$1</span>$2<span class="hl-css-val">$3</span>$4');
+            
+            // CSS: selectors { }
+            html = html.replace(/([.#]?[a-zA-Z*][a-zA-Z0-9_-]*)\s*(\{)/g,
+                '<span class="hl-css-sel">$1</span> $2');
+            
+            // CSS properties and values
+            html = html.replace(/([a-z\-]+)(\s*:\s*)([^;{}]+)(;)/g,
+                '<span class="hl-css-prop">$1</span><span class="hl-punct">$2</span><span class="hl-css-val">$3</span><span class="hl-punct">$4</span>');
+            
+            // HTML entities &#...; or &...;
+            html = html.replace(/(&amp;#?[a-zA-Z0-9]+;)/g, '<span class="hl-entity">$1</span>');
+            
             return html;
         }
 
