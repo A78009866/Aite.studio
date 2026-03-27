@@ -99,7 +99,7 @@
         .action-btn { width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.3s; font-size: 0.9rem; color: white; }
         .btn-delete { background: rgba(255, 68, 68, 0.2); color: #ff4444; border: 1px solid #ff4444; }
         .btn-edit { background: rgba(0, 230, 118, 0.2); color: var(--primary); border: 1px solid var(--primary); }
-        .download-btn-small { background: #222; color: white; padding: 8px 16px; border-radius: 8px; border: 1px solid #333; text-decoration: none; font-size: 0.85rem; transition: 0.3s; display: flex; align-items: center; gap: 5px; }
+        .download-btn-small { background: #222; color: white; padding: 8px 16px; border-radius: 8px; border: 1px solid #333; text-decoration: none; font-size: 0.85rem; transition: 0.3s; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
         .download-btn-small:hover { background: var(--primary); color: black; border-color: var(--primary); }
         .main-container { flex: 1; display: flex; flex-wrap: wrap; width: 100%; padding: 2rem; gap: 4rem; justify-content: center; align-items: flex-start; }
         .config-panel { flex: 1; min-width: 350px; max-width: 500px; }
@@ -137,6 +137,19 @@
         .toast.show { opacity: 1; bottom: 45px; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         footer { text-align: center; padding: 3rem; color: #333; font-size: 0.9rem; border-top: 1px solid #1a1a1a; margin-top: 2rem; }
+
+        /* --- Offline Page Editor Styles --- */
+        .offline-editor-section { margin-top: 1.5rem; }
+        .offline-tabs { display: flex; gap: 0; margin-bottom: 0; border-bottom: 1px solid var(--border); }
+        .offline-tab-btn { background: transparent; border: 1px solid var(--border); border-bottom: none; color: #666; padding: 10px 20px; cursor: pointer; font-size: 0.9rem; font-weight: 600; font-family: var(--font-ar); transition: 0.3s; border-radius: 8px 8px 0 0; margin-left: -1px; }
+        .offline-tab-btn:first-child { margin-left: 0; }
+        .offline-tab-btn.active { background: var(--bg-card); color: var(--primary); border-color: var(--primary); border-bottom: 1px solid var(--bg-card); margin-bottom: -1px; z-index: 1; }
+        .offline-tab-content { display: none; border: 1px solid var(--border); border-top: none; border-radius: 0 0 12px 12px; overflow: hidden; background: var(--bg-card); }
+        .offline-tab-content.active { display: block; }
+        #offlineCodeEditor { width: 100%; min-height: 250px; background: #0d0d0d; color: #00E676; border: none; padding: 16px; font-family: 'Courier New', monospace; font-size: 0.85rem; resize: vertical; direction: ltr; text-align: left; line-height: 1.6; }
+        #offlineCodeEditor:focus { outline: none; box-shadow: inset 0 0 10px rgba(0, 230, 118, 0.05); }
+        #offlinePreviewFrame { width: 100%; min-height: 250px; border: none; background: white; }
+        /* ----------------------------------- */
 
         /* ===== Responsive / WebView / Mobile Fixes ===== */
         @media (max-width: 768px) {
@@ -302,6 +315,45 @@
                             <div class="toggle-container"><span class="toggle-label" data-i18n="customTextSelection">تمكين تحديد النص</span><label class="switch"><input type="checkbox" id="enableTextSelection" checked><span class="slider"></span></label></div>
                             <div class="toggle-container"><span class="toggle-label" data-i18n="customSplashScreen">عرض شاشة البداية</span><label class="switch"><input type="checkbox" id="enableSplashScreen" checked><span class="slider"></span></label></div>
                         </div>
+
+                        <div class="offline-editor-section">
+                            <label data-i18n="offlinePageLabel" style="margin-top: 1.5rem;">صفحة عدم الاتصال</label>
+                            <div class="offline-tabs">
+                                <button type="button" class="offline-tab-btn active" onclick="switchOfflineTab('code')" data-i18n="offlineTabCode">الكود</button>
+                                <button type="button" class="offline-tab-btn" onclick="switchOfflineTab('preview')" data-i18n="offlineTabPreview">المعاينة</button>
+                            </div>
+                            <div id="offlineCodeTab" class="offline-tab-content active">
+                                <textarea id="offlineCodeEditor" spellcheck="false"><!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لا يوجد اتصال</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0a0a0a; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; text-align: center; padding: 20px; }
+  .container { max-width: 400px; }
+  .icon { font-size: 80px; margin-bottom: 20px; opacity: 0.5; }
+  h1 { font-size: 1.5rem; margin-bottom: 10px; color: #00E676; }
+  p { color: #888; margin-bottom: 30px; font-size: 0.95rem; line-height: 1.6; }
+  .retry-btn { background: #00E676; color: #000; border: none; padding: 14px 40px; border-radius: 50px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; }
+  .retry-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(0,230,118,0.3); }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="icon">&#128268;</div>
+  <h1>لا يوجد اتصال بالإنترنت</h1>
+  <p>تحقق من اتصالك بالشبكة وحاول مرة أخرى</p>
+  <button class="retry-btn" onclick="location.reload()">إعادة المحاولة</button>
+</div>
+</body>
+</html></textarea>
+                            </div>
+                            <div id="offlinePreviewTab" class="offline-tab-content">
+                                <iframe id="offlinePreviewFrame" sandbox="allow-scripts"></iframe>
+                            </div>
+                        </div>
                         
                         <label data-i18n="iconLabel">أيقونة التطبيق</label>
                         <div class="upload-box" onclick="document.getElementById('fileInput').click()">
@@ -394,6 +446,7 @@ const translations = {
         packageLabel: "معرف الحزمة", permsLabel: "أذونات التطبيق", permCam: "الكاميرا", permMic: "الميكروفون",
         permLoc: "الموقع الجغرافي", permFile: "رفع الملفات", permNotify: "الإشعارات", iconLabel: "أيقونة التطبيق", uploadText: "اضغط لرفع الأيقونة",
         customizationLabel: "تخصيصات إضافية", customZoom: "تمكين التكبير/التصغير", customTextSelection: "تمكين تحديد النص", customSplashScreen: "عرض شاشة البداية",
+        offlinePageLabel: "صفحة عدم الاتصال", offlineTabCode: "الكود", offlineTabPreview: "المعاينة",
         btnBuild: "بدء عملية البناء", btnUpdate: "حفظ وتحديث التطبيق", statusTitle: "حالة البناء:", 
         
         status_q: "في انتظار بدء المعالجة على سيرفرات Aite.studio...", 
@@ -417,6 +470,7 @@ const translations = {
         packageLabel: "Package ID", permsLabel: "App Permissions", permCam: "Camera", permMic: "Microphone",
         permLoc: "Location", permFile: "File Upload", permNotify: "Notifications", iconLabel: "App Icon", uploadText: "Click to upload icon",
         customizationLabel: "Additional Customizations", customZoom: "Enable Zoom", customTextSelection: "Enable Text Selection", customSplashScreen: "Show Splash Screen",
+        offlinePageLabel: "Offline Page", offlineTabCode: "Code", offlineTabPreview: "Preview",
         btnBuild: "Start Building", btnUpdate: "Save & Update App", statusTitle: "Build Status:", 
         
         status_q: "Waiting for processing on Aite.studio servers...", 
@@ -516,7 +570,7 @@ const translations = {
                         <img src="${app.icon || 'https://via.placeholder.com/150'}" alt="Icon">
                         <h3>${app.appName}</h3>
                         <p>${app.packageName}</p>
-                        <a href="${app.downloadLink}" class="download-btn-small" target="_blank"><i class="fa-solid fa-cloud-arrow-down"></i> ${translations[currentLang].download_btn}</a>
+                        <button class="download-btn-small" onclick="window.directDownload('${app.downloadLink}', '${app.appName}')"><i class="fa-solid fa-cloud-arrow-down"></i> ${translations[currentLang].download_btn}</button>
                     `;
                     appsListEl.appendChild(card);
                 });
@@ -528,11 +582,12 @@ const translations = {
             const newData = {
                 appName: appData.appName,
                 packageName: appData.packageName,
-                appUrl: appData.appUrl, // Use appData.appUrl directly
+                appUrl: appData.appUrl,
                 permissions: appData.permissions,
                 customizations: appData.customizations, 
                 downloadLink: appData.downloadLink,
                 icon: appData.iconBase64,
+                offlinePageHtml: appData.offlinePageHtml || '',
                 timestamp: Date.now()
             };
             if (currentEditingKey) {
@@ -591,6 +646,10 @@ const translations = {
                 document.getElementById('previewIcon').style.display = 'block';
                 document.getElementById('iconPlaceholder').style.display = 'none';
                 document.getElementById('uploadText').innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:1.5rem;"></i>';
+            }
+            // Restore offline page HTML
+            if(appData.offlinePageHtml) {
+                document.getElementById('offlineCodeEditor').value = appData.offlinePageHtml;
             }
             window.updatePreview();
         }
@@ -703,7 +762,8 @@ const translations = {
                         appUrl: appUrl,
                         iconBase64: uploadedBase64,
                         permissions: perms,
-                        customizations: customizations // Pass new customizations
+                        customizations: customizations,
+                        offlinePageHtml: document.getElementById('offlineCodeEditor').value
                     })
                 });
                 
@@ -761,8 +821,8 @@ const translations = {
                             bar.style.width = '100%';
                             bar.style.background = 'var(--primary)'; 
                             
-                            // Use the download_url provided by the server
-                            resultArea.innerHTML = `<a href="${data.download_url}" class="build-btn" style="background:var(--primary); color:black; text-decoration:none; margin-top: 10px;"><i class="fa-solid fa-cloud-arrow-down"></i> ${t.download_btn}</a>`;
+                            // Use direct download instead of link
+                            resultArea.innerHTML = `<button onclick="window.directDownload('${data.download_url}', '${currentAppName}')" class="build-btn" style="background:var(--primary); color:black; margin-top: 10px; border: none; cursor: pointer;"><i class="fa-solid fa-cloud-arrow-down"></i> ${t.download_btn}</button>`;
                             
                             saveAppToHistory({
                                 appName: currentAppName,
@@ -770,8 +830,9 @@ const translations = {
                                 appUrl: currentAppUrl,
                                 permissions: currentPerms,
                                 customizations: currentCustomizations,
-                                downloadLink: data.download_url, // Use the provided download URL
-                                iconBase64: uploadedBase64
+                                downloadLink: data.download_url,
+                                iconBase64: uploadedBase64,
+                                offlinePageHtml: document.getElementById('offlineCodeEditor').value
                             });
                         } else {
                             statusTxt.innerText = t.status_f;
@@ -823,6 +884,50 @@ const translations = {
         }
         window.showToast = function(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 4000); }
         setInterval(() => { const now = new Date(); document.getElementById('phoneTime').innerText = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0'); }, 1000);
+
+        // --- Direct Download Function ---
+        window.directDownload = async function(url, appName) {
+            try {
+                showToast(currentLang === 'ar' ? 'جاري تحميل الملف...' : 'Downloading file...');
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Download failed');
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = (appName || 'app') + '.apk';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+            } catch(e) {
+                // Fallback: open in new tab if fetch fails (CORS)
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = (appName || 'app') + '.apk';
+                a.target = '_blank';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+        }
+
+        // --- Offline Page Editor Tab Switching ---
+        window.switchOfflineTab = function(tab) {
+            document.querySelectorAll('.offline-tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.offline-tab-content').forEach(c => c.classList.remove('active'));
+            if (tab === 'code') {
+                document.getElementById('offlineCodeTab').classList.add('active');
+                document.querySelectorAll('.offline-tab-btn')[0].classList.add('active');
+            } else {
+                document.getElementById('offlinePreviewTab').classList.add('active');
+                document.querySelectorAll('.offline-tab-btn')[1].classList.add('active');
+                // Update preview iframe
+                const code = document.getElementById('offlineCodeEditor').value;
+                const iframe = document.getElementById('offlinePreviewFrame');
+                iframe.srcdoc = code;
+            }
+        }
     </script>
 </body>
 </html>
