@@ -7,6 +7,9 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -18,6 +21,7 @@ import android.view.WindowManager
 import android.webkit.PermissionRequest
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -30,12 +34,12 @@ import androidx.core.content.ContextCompat
 class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView
     private var fileUploadCallback: ValueCallback<Array<Uri>>? = null
+    private var isOfflinePageShowing = false
+    private var lastTargetUrl = ""
 
-    // Launchers for Permissions and Files
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        // Handle permission results
     }
 
     private val fileChooserLauncher = registerForActivityResult(
@@ -51,21 +55,38 @@ class MainActivity : AppCompatActivity() {
         } else {
             fileUploadCallback?.onReceiveValue(null)
         }
+        fileUploadCallback = null
+    }
+
+    private fun isNetworkAvailable(): Boolean {
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val network = cm.activeNetwork ?: return false
+            val caps = cm.getNetworkCapabilities(network) ?: return false
+            return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        } else {
+            @Suppress("DEPRECATION")
+            val ni = cm.activeNetworkInfo
+            return ni != null && ni.isConnected
+        }
+    }
+
+    private fun loadOfflinePage() {
+        isOfflinePageShowing = true
+        webView.loadUrl("file:///android_asset/offline.html")
     }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // --- Customization Placeholders (Will be replaced by GitHub Actions) ---
+
         val enableZoom = "ENABLE_ZOOM_PLACEHOLDER".toBoolean()
         val enableTextSelection = "ENABLE_TEXT_SELECTION_PLACEHOLDER".toBoolean()
         val enableSplashScreen = "ENABLE_SPLASH_SCREEN_PLACEHOLDER".toBoolean()
-        val enableFullScreen = "false".toBoolean() // Keeping this as false for now, can be added later
+        val enableFullScreen = "false".toBoolean()
         val targetUrl = "WEB_URL_PLACEHOLDER"
-        // ----------------------------------------------------------------------
+        lastTargetUrl = targetUrl
 
-        // 1. Handle Fullscreen (if needed)
         if (enableFullScreen) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 window.insetsController?.hide(WindowInsets.Type.statusBars())
@@ -81,12 +102,11 @@ class MainActivity : AppCompatActivity() {
             setContentView(R.layout.splash_screen)
             Handler(Looper.getMainLooper()).postDelayed({
                 setupWebView(enableZoom, enableTextSelection, targetUrl)
-            }, 2000) // Display splash screen for 2 seconds
+            }, 2000)
         } else {
             setupWebView(enableZoom, enableTextSelection, targetUrl)
         }
-        
-        // 2. Setup Notifications Channel (With Vibration)
+
         createNotificationChannel()
         checkAndRequestPermissions()
     }
@@ -101,19 +121,18 @@ class MainActivity : AppCompatActivity() {
         settings.allowFileAccess = true
         settings.allowContentAccess = true
         settings.mediaPlaybackRequiresUserGesture = false
-        
+        settings.cacheMode = WebSettings.LOAD_DEFAULT
+
         val newUA = settings.userAgentString.replace("; wv", "")
         settings.userAgentString = newUA
-        
-        // 3. Handle Zoom Customization
+
         settings.setSupportZoom(enableZoom)
         settings.builtInZoomControls = enableZoom
         settings.displayZoomControls = false
 
-        // 4. Handle Text Selection Customization
         if (!enableTextSelection) {
-            webView.setOnLongClickListener { true } // Disables long press context menu
-            webView.isLongClickable = false // Also disable long click for text selection
+            webView.setOnLongClickListener { true }
+            webView.isLongClickable = false
             webView.isHapticFeedbackEnabled = false
         } else {
             webView.setOnLongClickListener(null)
@@ -138,17 +157,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // 5. Handle External Links & Apps
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val url = request?.url.toString()
-                
-                // Keep app's own links inside WebView
                 if (url.startsWith("http") || url.startsWith("https")) {
                     if (url.contains(Uri.parse(targetUrl).host ?: "")) {
-                        return false 
+                        return false
                     }
-                    // Open other websites in external browser
                     try {
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                         startActivity(intent)
@@ -156,21 +171,39 @@ class MainActivity : AppCompatActivity() {
                         e.printStackTrace()
                     }
                     return true
-                } 
-                
-                // Handle Schemes (tel:, mailto:, whatsapp:, intent:)
+                }
                 try {
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                     startActivity(intent)
                     return true
                 } catch (e: Exception) {
-                    // App not installed
                     return true
+                }
+            }
+
+            override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
+                if (request?.isForMainFrame == true) {
+                    loadOfflinePage()
+                }
+            }
+
+            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                super.onPageStarted(view, url, favicon)
+                if (isOfflinePageShowing && url != null && !url.startsWith("file:///android_asset")) {
+                    if (!isNetworkAvailable()) {
+                        loadOfflinePage()
+                    } else {
+                        isOfflinePageShowing = false
+                    }
                 }
             }
         }
 
-        webView.loadUrl(targetUrl)
+        if (isNetworkAvailable()) {
+            webView.loadUrl(targetUrl)
+        } else {
+            loadOfflinePage()
+        }
     }
 
     private fun createNotificationChannel() {
@@ -180,7 +213,7 @@ class MainActivity : AppCompatActivity() {
             val importance = NotificationManager.IMPORTANCE_HIGH
             val channel = NotificationChannel("DEFAULT_CHANNEL", name, importance).apply {
                 description = descriptionText
-                enableVibration(true) // Force Vibration
+                enableVibration(true)
             }
             val notificationManager: NotificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -190,7 +223,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkAndRequestPermissions() {
         val permissionsToRequest = mutableListOf<String>()
-        
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             permissionsToRequest.add(Manifest.permission.CAMERA)
         }
@@ -200,21 +232,18 @@ class MainActivity : AppCompatActivity() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             permissionsToRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
         }
-
-        // Notification Permission for Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
-        
         if (permissionsToRequest.isNotEmpty()) {
-            requestPermissionLauncher.launch(permissionsToTypedArray())
+            requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
         }
     }
 
     override fun onBackPressed() {
-        if (::webView.isInitialized && webView.canGoBack()) { // Check if webView is initialized
+        if (::webView.isInitialized && webView.canGoBack()) {
             webView.goBack()
         } else {
             super.onBackPressed()
