@@ -171,6 +171,31 @@ app.get('/api/status/:requestId', async (req, res) => {
     }
 });
 
+// --- API: Proxy Download (bypass CORS for GitHub releases) ---
+app.get('/api/download', async (req, res) => {
+    const fileUrl = req.query.url;
+    if (!fileUrl) return res.status(400).json({ error: 'URL مفقود' });
+    try {
+        const response = await axios({
+            method: 'GET',
+            url: fileUrl,
+            responseType: 'stream',
+            headers: { 'User-Agent': 'AiteStudio/1.0' },
+            maxRedirects: 10
+        });
+        const filename = req.query.name ? `${req.query.name}.apk` : 'app.apk';
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+        if (response.headers['content-length']) {
+            res.setHeader('Content-Length', response.headers['content-length']);
+        }
+        response.data.pipe(res);
+    } catch (error) {
+        console.error('Download proxy error:', error.message);
+        res.status(500).json({ error: 'فشل تحميل الملف' });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
