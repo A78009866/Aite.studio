@@ -140,15 +140,35 @@
 
         /* --- Offline Page Editor Styles --- */
         .offline-editor-section { margin-top: 1.5rem; }
-        .offline-tabs { display: flex; gap: 0; margin-bottom: 0; border-bottom: 1px solid var(--border); }
+        .offline-tabs { display: flex; gap: 0; margin-bottom: 0; }
         .offline-tab-btn { background: transparent; border: 1px solid var(--border); border-bottom: none; color: #666; padding: 10px 20px; cursor: pointer; font-size: 0.9rem; font-weight: 600; font-family: var(--font-ar); transition: 0.3s; border-radius: 8px 8px 0 0; margin-left: -1px; }
         .offline-tab-btn:first-child { margin-left: 0; }
-        .offline-tab-btn.active { background: var(--bg-card); color: var(--primary); border-color: var(--primary); border-bottom: 1px solid var(--bg-card); margin-bottom: -1px; z-index: 1; }
-        .offline-tab-content { display: none; border: 1px solid var(--border); border-top: none; border-radius: 0 0 12px 12px; overflow: hidden; background: var(--bg-card); }
+        .offline-tab-btn.active { background: #1a1a2e; color: var(--primary); border-color: var(--primary); border-bottom: 1px solid #1a1a2e; margin-bottom: -1px; z-index: 1; }
+        .offline-tab-content { display: none; }
         .offline-tab-content.active { display: block; }
-        #offlineCodeEditor { width: 100%; min-height: 250px; background: #0d0d0d; color: #00E676; border: none; padding: 16px; font-family: 'Courier New', monospace; font-size: 0.85rem; resize: vertical; direction: ltr; text-align: left; line-height: 1.6; }
-        #offlineCodeEditor:focus { outline: none; box-shadow: inset 0 0 10px rgba(0, 230, 118, 0.05); }
-        #offlinePreviewFrame { width: 100%; min-height: 250px; border: none; background: white; }
+        .offline-phone-frame { width: 100%; max-width: 340px; margin: 0 auto; background: #000; border-radius: 45px; border: 12px solid #1f1f1f; position: relative; overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,0.7); }
+        .offline-phone-statusbar { width: 100%; height: 40px; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: white; position: absolute; top: 0; z-index: 10; background: rgba(0,0,0,0.5); }
+        .offline-phone-screen { width: 100%; min-height: 580px; max-height: 630px; overflow: auto; position: relative; }
+        /* Code editor with syntax highlighting */
+        .code-editor-wrap { position: relative; width: 100%; min-height: 580px; }
+        #offlineCodeHighlight { position: absolute; top: 0; left: 0; right: 0; bottom: 0; padding: 50px 14px 14px 14px; font-family: 'Courier New', Consolas, monospace; font-size: 12px; line-height: 1.7; white-space: pre-wrap; word-wrap: break-word; color: #abb2bf; background: #1a1a2e; pointer-events: none; overflow: auto; direction: ltr; text-align: left; }
+        #offlineCodeEditor { position: absolute; top: 0; left: 0; width: 100%; height: 100%; min-height: 580px; background: transparent; color: transparent; caret-color: #fff; border: none; padding: 50px 14px 14px 14px; font-family: 'Courier New', Consolas, monospace; font-size: 12px; resize: none; direction: ltr; text-align: left; line-height: 1.7; z-index: 2; white-space: pre-wrap; word-wrap: break-word; overflow: auto; }
+        #offlineCodeEditor:focus { outline: none; }
+        #offlineCodeEditor::selection { background: rgba(0, 230, 118, 0.25); }
+        /* Syntax colors */
+        .hl-tag { color: #e06c75; }
+        .hl-attr { color: #d19a66; }
+        .hl-val { color: #98c379; }
+        .hl-str { color: #98c379; }
+        .hl-doctype { color: #c678dd; }
+        .hl-comment { color: #5c6370; font-style: italic; }
+        .hl-css-prop { color: #56b6c2; }
+        .hl-css-val { color: #d19a66; }
+        .hl-css-sel { color: #e06c75; }
+        .hl-entity { color: #c678dd; }
+        .hl-text { color: #abb2bf; }
+        /* Preview phone frame */
+        #offlinePreviewFrame { width: 100%; min-height: 580px; border: none; background: white; display: block; }
         /* ----------------------------------- */
 
         /* ===== Responsive / WebView / Mobile Fixes ===== */
@@ -323,7 +343,15 @@
                                 <button type="button" class="offline-tab-btn" onclick="switchOfflineTab('preview')" data-i18n="offlineTabPreview">المعاينة</button>
                             </div>
                             <div id="offlineCodeTab" class="offline-tab-content active">
-                                <textarea id="offlineCodeEditor" spellcheck="false"><!DOCTYPE html>
+                                <div class="offline-phone-frame">
+                                    <div class="offline-phone-statusbar" dir="ltr">
+                                        <span>12:00</span>
+                                        <div style="display:flex; gap:6px; opacity: 0.8;"><i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi-slash" style="opacity:0.3"></i><i class="fa-solid fa-battery-full"></i></div>
+                                    </div>
+                                    <div class="offline-phone-screen">
+                                        <div class="code-editor-wrap">
+                                            <div id="offlineCodeHighlight"></div>
+                                            <textarea id="offlineCodeEditor" spellcheck="false"><!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -349,9 +377,20 @@
 </div>
 </body>
 </html></textarea>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div id="offlinePreviewTab" class="offline-tab-content">
-                                <iframe id="offlinePreviewFrame" sandbox="allow-scripts"></iframe>
+                                <div class="offline-phone-frame">
+                                    <div class="offline-phone-statusbar" dir="ltr">
+                                        <span>12:00</span>
+                                        <div style="display:flex; gap:6px; opacity: 0.8;"><i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi-slash" style="opacity:0.3"></i><i class="fa-solid fa-battery-full"></i></div>
+                                    </div>
+                                    <div class="offline-phone-screen">
+                                        <iframe id="offlinePreviewFrame" sandbox="allow-scripts"></iframe>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
@@ -912,6 +951,51 @@ const translations = {
             }
         }
 
+        // --- HTML Syntax Highlighter ---
+        function highlightHTML(code) {
+            let html = code
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            // Comments
+            html = html.replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="hl-comment">$1</span>');
+            // DOCTYPE
+            html = html.replace(/(&lt;!DOCTYPE\s+[^&]*&gt;)/gi, '<span class="hl-doctype">$1</span>');
+            // HTML entities like &#128268;
+            html = html.replace(/(&#?[a-zA-Z0-9]+;)/g, '<span class="hl-entity">$1</span>');
+            // Tags with attributes
+            html = html.replace(/(&lt;\/?)([a-zA-Z][a-zA-Z0-9]*)((?:\s+[^&]*?)*?)(\s*\/?)(&gt;)/g, function(m, open, tag, attrs, selfClose, close) {
+                let attrStr = attrs.replace(/([a-zA-Z\-]+)(=)(&quot;|&#39;|"|\')?([^&]*?)(&quot;|&#39;|"|\'|(?=\s|$))/g, 
+                    '<span class="hl-attr">$1</span>$2<span class="hl-val">$3$4$5</span>');
+                return '<span class="hl-tag">' + open + tag + '</span>' + attrStr + '<span class="hl-tag">' + selfClose + close + '</span>';
+            });
+            // CSS inside style blocks - property: value;
+            html = html.replace(/([a-z\-]+)(\s*:\s*)([^;{}<]+)(;)/g, 
+                '<span class="hl-css-prop">$1</span>$2<span class="hl-css-val">$3</span>$4');
+            return html;
+        }
+
+        function updateCodeHighlight() {
+            const editor = document.getElementById('offlineCodeEditor');
+            const highlight = document.getElementById('offlineCodeHighlight');
+            if (editor && highlight) {
+                highlight.innerHTML = highlightHTML(editor.value) + '\n';
+            }
+        }
+
+        // Sync scroll between textarea and highlight
+        document.getElementById('offlineCodeEditor').addEventListener('scroll', function() {
+            const highlight = document.getElementById('offlineCodeHighlight');
+            highlight.scrollTop = this.scrollTop;
+            highlight.scrollLeft = this.scrollLeft;
+        });
+
+        // Update highlighting on input
+        document.getElementById('offlineCodeEditor').addEventListener('input', updateCodeHighlight);
+
+        // Initial highlight
+        updateCodeHighlight();
+
         // --- Offline Page Editor Tab Switching ---
         window.switchOfflineTab = function(tab) {
             document.querySelectorAll('.offline-tab-btn').forEach(b => b.classList.remove('active'));
@@ -919,6 +1003,7 @@ const translations = {
             if (tab === 'code') {
                 document.getElementById('offlineCodeTab').classList.add('active');
                 document.querySelectorAll('.offline-tab-btn')[0].classList.add('active');
+                updateCodeHighlight();
             } else {
                 document.getElementById('offlinePreviewTab').classList.add('active');
                 document.querySelectorAll('.offline-tab-btn')[1].classList.add('active');
