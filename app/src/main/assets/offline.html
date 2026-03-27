@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لا يوجد اتصال</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0a0a0a; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; text-align: center; padding: 20px; }
+  .container { max-width: 400px; }
+  .icon { font-size: 80px; margin-bottom: 20px; opacity: 0.5; }
+  h1 { font-size: 1.5rem; margin-bottom: 10px; color: #00E676; }
+  p { color: #888; margin-bottom: 30px; font-size: 0.95rem; line-height: 1.6; }
+  .retry-btn { background: #00E676; color: #000; border: none; padding: 14px 40px; border-radius: 50px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; }
+  .retry-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(0,230,118,0.3); }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="icon">&#128268;</div>
+  <h1>لا يوجد اتصال بالإنترنت</h1>
+  <p>تحقق من اتصالك بالشبكة وحاول مرة أخرى</p>
+  <button class="retry-btn" onclick="location.reload()">إعادة المحاولة</button>
+</div>
+</body>
+</html>
