@@ -38,7 +38,7 @@ async function getReleaseDownloadUrl(runId, repoOwner, repoName, githubToken) {
             { headers: { 'Authorization': `token ${githubToken}` } }
         );
         const release = releasesResponse.data;
-        const asset = release.assets.find(a => a.name === 'app-debug.apk');
+        const asset = release.assets.find(a => a.name === 'app-release.apk') || release.assets.find(a => a.name === 'app-debug.apk');
         return asset ? asset.browser_download_url : null;
     } catch (error) {
         // لا نطبع الخطأ هنا لتجنب إغراق السجلات، لأن الإصدار قد لا يكون جاهزاً بعد
@@ -53,7 +53,7 @@ app.get('/', (req, res) => {
 // --- API: طلب البناء ---
 app.post('/api/build', async (req, res) => {
     // استقبال البيانات
-    const { appName, packageName, appUrl, iconBase64, permissions, customizations } = req.body;
+    const { appName, packageName, appUrl, iconBase64, permissions, customizations, offlinePageHtml } = req.body;
 
     // --- تصحيح الخطأ هنا: تم تغيير iconBase66 إلى iconBase64 ---
     if (!appName || !packageName || !appUrl || !iconBase64) {
@@ -94,7 +94,8 @@ app.post('/api/build', async (req, res) => {
                     app_url: appUrl,
                     icon_url: iconUrl,
                     permissions_json: permissionsJson,
-                    customizations_json: customizationsJson
+                    customizations_json: customizationsJson,
+                    offline_page_html: offlinePageHtml || ''
                 }
             },
             {
