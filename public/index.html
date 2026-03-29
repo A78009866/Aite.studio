@@ -555,9 +555,8 @@ const translations = {
                 document.getElementById('userName').innerText = user.displayName;
                 loadUserApps(user.uid);
             } else {
-                currentUser = null;
-                document.getElementById('loginScreen').style.display = 'flex';
-                document.getElementById('appContent').style.display = 'none';
+                // Redirect to login.html if not authenticated
+                window.location.href = 'login.html';
             }
         });
 

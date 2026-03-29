@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aite.studio | تسجيل الدخول</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg-dark: #0a0a0a; --bg-card: #141414; --primary: #00E676; --danger: #ff4444; --text-main: #ffffff; --text-muted: #888888; --border: #333333; --font-ar: 'Cairo', sans-serif; --font-en: 'Outfit', sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        body { font-family: var(--font-ar); background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow-x: hidden; }
+        
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-dark); z-index: 9999; display: flex; justify-content: center; align-items: center; }
+        .loader { width: 48px; height: 48px; border: 5px solid #FFF; border-bottom-color: var(--primary); border-radius: 50%; display: inline-block; box-sizing: border-box; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .login-card {
+            background: var(--bg-card);
+            padding: 3rem;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 0 50px rgba(0, 230, 118, 0.05);
+        }
+        .brand { font-family: var(--font-en); font-size: 1.8rem; font-weight: 700; margin-bottom: 1rem; }
+        .brand .dot { color: var(--primary); }
+        .google-btn {
+            margin-top: 2rem;
+            background: white;
+            color: #333;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            width: 100%;
+            transition: 0.3s;
+            font-family: var(--font-en);
+            font-size: 1rem;
+        }
+        .google-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255,255,255,0.2); }
+        .google-btn:disabled { opacity: 0.6; cursor: wait; transform: none; box-shadow: none; }
+        .error-msg { color: var(--danger); margin-top: 1rem; font-size: 0.9rem; display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="loadingOverlay">
+        <span class="loader"></span>
+    </div>
+
+    <div id="loginCard" class="login-card" style="display: none;">
+        <div class="brand">Aite<span class="dot">.</span>studio</div>
+        <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">&#1571;&#1607;&#1604;&#1575; &#1576;&#1603; !</h2>
+        <p style="color: var(--text-muted);">&#1587;&#1580;&#1604; &#1575;&#1604;&#1583;&#1582;&#1608;&#1604; &#1604;&#1604;&#1576;&#1583;&#1571; &#1601;&#1610; &#1576;&#1606;&#1575;&#1569; &#1575;&#1604;&#1578;&#1591;&#1576;&#1610;&#1602;&#1575;&#1578; .</p>
+        <button class="google-btn" id="loginBtn">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt="Google">
+            &#1578;&#1587;&#1580;&#1610;&#1604; &#1575;&#1604;&#1583;&#1582;&#1608;&#1604; &#1593;&#1576;&#1585; Google
+        </button>
+        <p class="error-msg" id="errorMsg"></p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAN-9qBeL51nwpctJw9rSQYzz1C7dDRf1E",
+            authDomain: "world-3212f.firebaseapp.com",
+            databaseURL: "https://world-3212f-default-rtdb.firebaseio.com",
+            projectId: "world-3212f",
+            storageBucket: "world-3212f.firebasestorage.app",
+            messagingSenderId: "421425146697",
+            appId: "1:421425146697:web:efa372fbd585e8888e4898",
+            measurementId: "G-163YR2VGK8"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        // Check if user is already logged in
+        onAuthStateChanged(auth, (user) => {
+            document.getElementById('loadingOverlay').style.display = 'none';
+            if (user) {
+                // User is already signed in, redirect to index.html
+                window.location.href = 'index.html';
+            } else {
+                // Show the login card
+                document.getElementById('loginCard').style.display = 'block';
+            }
+        });
+
+        // Google Sign-In with Popup
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('loginBtn');
+            const errorMsg = document.getElementById('errorMsg');
+            
+            btn.disabled = true;
+            errorMsg.style.display = 'none';
+
+            try {
+                const result = await signInWithPopup(auth, provider);
+                // Sign-in successful, redirect to index.html
+                window.location.href = 'index.html';
+            } catch (error) {
+                btn.disabled = false;
+                if (error.code === 'auth/popup-closed-by-user') {
+                    // User closed the popup, no need to show error
+                    return;
+                }
+                if (error.code === 'auth/cancelled-popup-request') {
+                    return;
+                }
+                errorMsg.textContent = error.message;
+                errorMsg.style.display = 'block';
+                console.error("Login error:", error);
+            }
+        });
+    </script>
+</body>
+</html>
