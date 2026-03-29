@@ -3,7 +3,6 @@ package com.aite.studio
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
-import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -22,6 +21,7 @@ import androidx.appcompat.app.AppCompatActivity
 class GoogleAuthActivity : AppCompatActivity() {
 
     private lateinit var authWebView: WebView
+    private var hasRedirectedToTarget = false
 
     companion object {
         const val EXTRA_AUTH_URL = "auth_url"
@@ -73,18 +73,30 @@ class GoogleAuthActivity : AppCompatActivity() {
 
         authWebView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                val reqUrl = request?.url.toString()
-                // When OAuth redirects back to the app's target host, return the URL to MainActivity
-                if (targetHost.isNotEmpty() && reqUrl.contains(targetHost)) {
-                    cookieManager.flush()
-                    val resultIntent = Intent()
-                    resultIntent.putExtra(EXTRA_RESULT_URL, reqUrl)
-                    setResult(RESULT_AUTH_SUCCESS, resultIntent)
-                    finish()
-                    return true
-                }
-                // Let all other URLs (Google OAuth pages) load inside this Activity's WebView
+                // Allow ALL URLs to load inside this WebView
+                // including the OAuth callback to the target host
+                // This ensures the full auth flow completes with proper session/cookies
                 return false
+            }
+
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                cookieManager.flush()
+
+                // After the OAuth callback redirects back to the target host
+                // and the page finishes loading, the auth is complete
+                if (url != null && targetHost.isNotEmpty() && url.contains(targetHost)) {
+                    if (hasRedirectedToTarget) {
+                        // Second time we land on target host = auth is fully done
+                        // (first time was the callback, second is the final redirect)
+                        val resultIntent = Intent()
+                        resultIntent.putExtra(EXTRA_RESULT_URL, url)
+                        setResult(RESULT_AUTH_SUCCESS, resultIntent)
+                        finish()
+                    } else {
+                        hasRedirectedToTarget = true
+                    }
+                }
             }
 
             override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {

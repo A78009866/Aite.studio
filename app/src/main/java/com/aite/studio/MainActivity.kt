@@ -87,16 +87,16 @@ class MainActivity : AppCompatActivity() {
         return authDomains.any { domain -> url.contains(domain) }
     }
 
-    // Launcher for Google Auth Activity - when auth succeeds, load the returned URL (build page)
+    // Launcher for Google Auth Activity - when auth succeeds, reload main page with authenticated cookies
     private val googleAuthLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == GoogleAuthActivity.RESULT_AUTH_SUCCESS) {
-            val resultUrl = result.data?.getStringExtra(GoogleAuthActivity.EXTRA_RESULT_URL)
-            if (!resultUrl.isNullOrEmpty() && ::webView.isInitialized) {
-                CookieManager.getInstance().flush()
-                webView.loadUrl(resultUrl)
-            }
+        if (result.resultCode == GoogleAuthActivity.RESULT_AUTH_SUCCESS && ::webView.isInitialized) {
+            // Auth completed successfully in the separate page
+            // Cookies are shared via CookieManager, so just reload the target URL
+            // The site will recognize the authenticated session and show the build page
+            CookieManager.getInstance().flush()
+            webView.loadUrl(lastTargetUrl)
         }
     }
 
