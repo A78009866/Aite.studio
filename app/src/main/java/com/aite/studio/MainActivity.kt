@@ -2,6 +2,7 @@ package com.aite.studio
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Dialog
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -15,14 +16,17 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.View
+import android.os.Message
+import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowManager
+import android.webkit.CookieManager
 import android.webkit.PermissionRequest
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -36,6 +40,18 @@ class MainActivity : AppCompatActivity() {
     private var fileUploadCallback: ValueCallback<Array<Uri>>? = null
     private var isOfflinePageShowing = false
     private var lastTargetUrl = ""
+    private var pendingRetryUrl = ""
+    private var googleAuthDialog: Dialog? = null
+
+    // Google/OAuth domains that should open in a separate auth window
+    private val authDomains = listOf(
+        "accounts.google.com",
+        "accounts.youtube.com",
+        "login.microsoftonline.com",
+        "github.com/login",
+        "auth0.com",
+        "appleid.apple.com"
+    )
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -71,9 +87,81 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun isAuthUrl(url: String): Boolean {
+        return authDomains.any { domain -> url.contains(domain) }
+    }
+
     private fun loadOfflinePage() {
+        if (isOfflinePageShowing) return
         isOfflinePageShowing = true
+        webView.stopLoading()
         webView.loadUrl("file:///android_asset/offline.html")
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun openGoogleAuthInDialog(url: String) {
+        googleAuthDialog?.dismiss()
+
+        val dialog = Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
+        val authWebView = WebView(this)
+
+        val settings = authWebView.settings
+        settings.javaScriptEnabled = true
+        settings.domStorageEnabled = true
+        settings.allowFileAccess = true
+        settings.allowContentAccess = true
+        settings.setSupportZoom(true)
+        settings.builtInZoomControls = true
+        settings.displayZoomControls = false
+        settings.setSupportMultipleWindows(false)
+        // Use a real browser user agent to avoid Google blocking WebView
+        settings.userAgentString = "Mozilla/5.0 (Linux; Android ${Build.VERSION.RELEASE}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+
+        val cookieManager = CookieManager.getInstance()
+        cookieManager.setAcceptCookie(true)
+        cookieManager.setAcceptThirdPartyCookies(authWebView, true)
+
+        authWebView.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                val reqUrl = request?.url.toString()
+                // If redirecting back to the target app URL, load it in the main WebView
+                val targetHost = Uri.parse(lastTargetUrl).host ?: ""
+                if (targetHost.isNotEmpty() && reqUrl.contains(targetHost)) {
+                    cookieManager.flush()
+                    webView.loadUrl(reqUrl)
+                    dialog.dismiss()
+                    return true
+                }
+                // Allow all other URLs (Google OAuth flow) to load in auth WebView
+                return false
+            }
+
+            override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
+                if (request?.isForMainFrame == true) {
+                    Toast.makeText(this@MainActivity, "\u062E\u0637\u0623 \u0641\u064A \u0627\u0644\u0627\u062A\u0635\u0627\u0644", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        authWebView.webChromeClient = object : WebChromeClient() {
+            override fun onCloseWindow(window: WebView?) {
+                dialog.dismiss()
+            }
+        }
+
+        dialog.setContentView(authWebView, ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        ))
+        dialog.setOnDismissListener {
+            authWebView.stopLoading()
+            authWebView.destroy()
+            googleAuthDialog = null
+        }
+
+        googleAuthDialog = dialog
+        dialog.show()
+        authWebView.loadUrl(url)
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -122,6 +210,8 @@ class MainActivity : AppCompatActivity() {
         settings.allowContentAccess = true
         settings.mediaPlaybackRequiresUserGesture = false
         settings.cacheMode = WebSettings.LOAD_DEFAULT
+        settings.setSupportMultipleWindows(true)
+        settings.javaScriptCanOpenWindowsAutomatically = true
 
         val newUA = settings.userAgentString.replace("; wv", "")
         settings.userAgentString = newUA
@@ -139,6 +229,10 @@ class MainActivity : AppCompatActivity() {
             webView.isLongClickable = true
         }
 
+        val cookieManager = CookieManager.getInstance()
+        cookieManager.setAcceptCookie(true)
+        cookieManager.setAcceptThirdPartyCookies(webView, true)
+
         webView.webChromeClient = object : WebChromeClient() {
             override fun onPermissionRequest(request: PermissionRequest?) {
                 request?.grant(request.resources)
@@ -155,13 +249,55 @@ class MainActivity : AppCompatActivity() {
                 fileChooserLauncher.launch(intent)
                 return true
             }
+
+            // Handle window.open() and target="_blank" for OAuth popups
+            override fun onCreateWindow(
+                view: WebView?,
+                isDialog: Boolean,
+                isUserGesture: Boolean,
+                resultMsg: Message?
+            ): Boolean {
+                val newWebView = WebView(this@MainActivity)
+                newWebView.settings.javaScriptEnabled = true
+                newWebView.settings.domStorageEnabled = true
+                newWebView.settings.userAgentString = view?.settings?.userAgentString
+
+                val transport = resultMsg?.obj as? WebView.WebViewTransport
+                transport?.webView = newWebView
+                resultMsg?.sendToTarget()
+
+                newWebView.webViewClient = object : WebViewClient() {
+                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                        val popupUrl = request?.url.toString()
+                        if (isAuthUrl(popupUrl)) {
+                            openGoogleAuthInDialog(popupUrl)
+                            return true
+                        }
+                        val targetHost = Uri.parse(lastTargetUrl).host ?: ""
+                        if (targetHost.isNotEmpty() && popupUrl.contains(targetHost)) {
+                            webView.loadUrl(popupUrl)
+                            return true
+                        }
+                        return false
+                    }
+                }
+                return true
+            }
         }
 
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val url = request?.url.toString()
+
+                // Handle Google/OAuth URLs - open in separate fullscreen dialog
+                if (isAuthUrl(url)) {
+                    openGoogleAuthInDialog(url)
+                    return true
+                }
+
                 if (url.startsWith("http") || url.startsWith("https")) {
-                    if (url.contains(Uri.parse(targetUrl).host ?: "")) {
+                    val targetHost = Uri.parse(targetUrl).host ?: ""
+                    if (targetHost.isNotEmpty() && url.contains(targetHost)) {
                         return false
                     }
                     try {
@@ -183,22 +319,62 @@ class MainActivity : AppCompatActivity() {
 
             override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
                 if (request?.isForMainFrame == true) {
+                    val failedUrl = request.url.toString()
+                    if (!failedUrl.startsWith("file:///android_asset")) {
+                        pendingRetryUrl = failedUrl
+                    }
+                    view?.stopLoading()
                     loadOfflinePage()
+                }
+            }
+
+            override fun onReceivedHttpError(view: WebView?, request: WebResourceRequest?, errorResponse: WebResourceResponse?) {
+                if (request?.isForMainFrame == true) {
+                    val statusCode = errorResponse?.statusCode ?: 0
+                    if (statusCode >= 500) {
+                        val failedUrl = request.url.toString()
+                        if (!failedUrl.startsWith("file:///android_asset")) {
+                            pendingRetryUrl = failedUrl
+                        }
+                        view?.stopLoading()
+                        loadOfflinePage()
+                    }
                 }
             }
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
-                if (isOfflinePageShowing && url != null && !url.startsWith("file:///android_asset")) {
+                if (url != null && !url.startsWith("file:///android_asset")) {
                     if (!isNetworkAvailable()) {
+                        view?.stopLoading()
                         loadOfflinePage()
                     } else {
                         isOfflinePageShowing = false
                     }
                 }
             }
+
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                if (url != null && url.startsWith("file:///android_asset/offline.html")) {
+                    val retryUrl = if (pendingRetryUrl.isNotEmpty()) pendingRetryUrl else lastTargetUrl
+                    view?.evaluateJavascript(
+                        """(function() {
+                            var btn = document.querySelector('.retry-btn');
+                            if (btn) {
+                                btn.onclick = function(e) {
+                                    e.preventDefault();
+                                    window.location.href = '$retryUrl';
+                                };
+                            }
+                        })();""", null
+                    )
+                }
+                CookieManager.getInstance().flush()
+            }
         }
 
+        pendingRetryUrl = targetUrl
         if (isNetworkAvailable()) {
             webView.loadUrl(targetUrl)
         } else {
@@ -243,10 +419,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
+        if (googleAuthDialog?.isShowing == true) {
+            googleAuthDialog?.dismiss()
+            return
+        }
         if (::webView.isInitialized && webView.canGoBack()) {
-            webView.goBack()
+            val currentUrl = webView.url ?: ""
+            if (currentUrl.startsWith("file:///android_asset")) {
+                if (isNetworkAvailable() && pendingRetryUrl.isNotEmpty()) {
+                    isOfflinePageShowing = false
+                    webView.loadUrl(pendingRetryUrl)
+                } else {
+                    super.onBackPressed()
+                }
+            } else {
+                webView.goBack()
+            }
         } else {
             super.onBackPressed()
         }
+    }
+
+    override fun onDestroy() {
+        googleAuthDialog?.dismiss()
+        super.onDestroy()
     }
 }

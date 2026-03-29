@@ -13,6 +13,8 @@
   p { color: #888; margin-bottom: 30px; font-size: 0.95rem; line-height: 1.6; }
   .retry-btn { background: #00E676; color: #000; border: none; padding: 14px 40px; border-radius: 50px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; }
   .retry-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(0,230,118,0.3); }
+  .retry-btn:active { transform: scale(0.97); }
+  .retry-btn.loading { opacity: 0.6; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -20,7 +22,20 @@
   <div class="icon">&#128268;</div>
   <h1>لا يوجد اتصال بالإنترنت</h1>
   <p>تحقق من اتصالك بالشبكة وحاول مرة أخرى</p>
-  <button class="retry-btn" onclick="location.reload()">إعادة المحاولة</button>
+  <button class="retry-btn" id="retryBtn">إعادة المحاولة</button>
 </div>
+<script>
+  // The retry URL will be injected by the Android app via evaluateJavascript.
+  // Fallback: if the button still has no handler after 500ms, just go back in history.
+  document.getElementById('retryBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    this.classList.add('loading');
+    this.textContent = 'جارٍ المحاولة...';
+    // Default fallback - the Android app overrides this onclick with the correct URL
+    setTimeout(function() {
+      window.history.back();
+    }, 300);
+  });
+</script>
 </body>
 </html>
