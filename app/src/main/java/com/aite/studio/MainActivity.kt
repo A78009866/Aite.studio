@@ -2,7 +2,6 @@ package com.aite.studio
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Dialog
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -17,7 +16,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
-import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowManager
 import android.webkit.CookieManager
@@ -30,7 +28,6 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -41,9 +38,8 @@ class MainActivity : AppCompatActivity() {
     private var isOfflinePageShowing = false
     private var lastTargetUrl = ""
     private var pendingRetryUrl = ""
-    private var googleAuthDialog: Dialog? = null
 
-    // Google/OAuth domains that should open in a separate auth window
+    // Google/OAuth domains that should open in a separate auth page
     private val authDomains = listOf(
         "accounts.google.com",
         "accounts.youtube.com",
@@ -91,6 +87,19 @@ class MainActivity : AppCompatActivity() {
         return authDomains.any { domain -> url.contains(domain) }
     }
 
+    // Launcher for Google Auth Activity - when auth succeeds, load the returned URL (build page)
+    private val googleAuthLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == GoogleAuthActivity.RESULT_AUTH_SUCCESS) {
+            val resultUrl = result.data?.getStringExtra(GoogleAuthActivity.EXTRA_RESULT_URL)
+            if (!resultUrl.isNullOrEmpty() && ::webView.isInitialized) {
+                CookieManager.getInstance().flush()
+                webView.loadUrl(resultUrl)
+            }
+        }
+    }
+
     private fun loadOfflinePage() {
         if (isOfflinePageShowing) return
         isOfflinePageShowing = true
@@ -98,70 +107,11 @@ class MainActivity : AppCompatActivity() {
         webView.loadUrl("file:///android_asset/offline.html")
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
-    private fun openGoogleAuthInDialog(url: String) {
-        googleAuthDialog?.dismiss()
-
-        val dialog = Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
-        val authWebView = WebView(this)
-
-        val settings = authWebView.settings
-        settings.javaScriptEnabled = true
-        settings.domStorageEnabled = true
-        settings.allowFileAccess = true
-        settings.allowContentAccess = true
-        settings.setSupportZoom(true)
-        settings.builtInZoomControls = true
-        settings.displayZoomControls = false
-        settings.setSupportMultipleWindows(false)
-        // Use a real browser user agent to avoid Google blocking WebView
-        settings.userAgentString = "Mozilla/5.0 (Linux; Android ${Build.VERSION.RELEASE}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-
-        val cookieManager = CookieManager.getInstance()
-        cookieManager.setAcceptCookie(true)
-        cookieManager.setAcceptThirdPartyCookies(authWebView, true)
-
-        authWebView.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                val reqUrl = request?.url.toString()
-                // If redirecting back to the target app URL, load it in the main WebView
-                val targetHost = Uri.parse(lastTargetUrl).host ?: ""
-                if (targetHost.isNotEmpty() && reqUrl.contains(targetHost)) {
-                    cookieManager.flush()
-                    webView.loadUrl(reqUrl)
-                    dialog.dismiss()
-                    return true
-                }
-                // Allow all other URLs (Google OAuth flow) to load in auth WebView
-                return false
-            }
-
-            override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
-                if (request?.isForMainFrame == true) {
-                    Toast.makeText(this@MainActivity, "\u062E\u0637\u0623 \u0641\u064A \u0627\u0644\u0627\u062A\u0635\u0627\u0644", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-
-        authWebView.webChromeClient = object : WebChromeClient() {
-            override fun onCloseWindow(window: WebView?) {
-                dialog.dismiss()
-            }
-        }
-
-        dialog.setContentView(authWebView, ViewGroup.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT
-        ))
-        dialog.setOnDismissListener {
-            authWebView.stopLoading()
-            authWebView.destroy()
-            googleAuthDialog = null
-        }
-
-        googleAuthDialog = dialog
-        dialog.show()
-        authWebView.loadUrl(url)
+    private fun openGoogleAuthPage(url: String) {
+        val intent = Intent(this, GoogleAuthActivity::class.java)
+        intent.putExtra(GoogleAuthActivity.EXTRA_AUTH_URL, url)
+        intent.putExtra(GoogleAuthActivity.EXTRA_TARGET_HOST, Uri.parse(lastTargetUrl).host ?: "")
+        googleAuthLauncher.launch(intent)
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -270,7 +220,7 @@ class MainActivity : AppCompatActivity() {
                     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                         val popupUrl = request?.url.toString()
                         if (isAuthUrl(popupUrl)) {
-                            openGoogleAuthInDialog(popupUrl)
+                            openGoogleAuthPage(popupUrl)
                             return true
                         }
                         val targetHost = Uri.parse(lastTargetUrl).host ?: ""
@@ -289,9 +239,9 @@ class MainActivity : AppCompatActivity() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val url = request?.url.toString()
 
-                // Handle Google/OAuth URLs - open in separate fullscreen dialog
+                // Handle Google/OAuth URLs - open in separate auth page
                 if (isAuthUrl(url)) {
-                    openGoogleAuthInDialog(url)
+                    openGoogleAuthPage(url)
                     return true
                 }
 
@@ -419,10 +369,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        if (googleAuthDialog?.isShowing == true) {
-            googleAuthDialog?.dismiss()
-            return
-        }
         if (::webView.isInitialized && webView.canGoBack()) {
             val currentUrl = webView.url ?: ""
             if (currentUrl.startsWith("file:///android_asset")) {
@@ -441,7 +387,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        googleAuthDialog?.dismiss()
         super.onDestroy()
     }
 }
