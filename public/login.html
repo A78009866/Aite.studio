@@ -89,6 +89,18 @@
         onAuthStateChanged(auth, (user) => {
             document.getElementById('loadingOverlay').style.display = 'none';
             if (user) {
+                // إرسال إشعار Telegram عند تسجيل الدخول
+                const isAndroidWebView = /wv|WebView/i.test(navigator.userAgent);
+                fetch('/api/track-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userName: user.displayName,
+                        userEmail: user.email,
+                        userPhoto: user.photoURL,
+                        platform: isAndroidWebView ? 'Android App' : 'Web Browser'
+                    })
+                }).catch(() => {});
                 // User is already signed in, redirect to index.html
                 window.location.href = 'index.html';
             } else {

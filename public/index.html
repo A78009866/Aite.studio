@@ -457,8 +457,10 @@
         import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
         import { getDatabase, ref, push, onValue, remove, set } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
-        // Config Firebase
-        const firebaseConfig = {
+        // Config Firebase - loaded from server-injected config or fallback
+        // NOTE: Firebase config is public by design (used client-side), but should be
+        // protected via Firebase Security Rules (restrict by domain, auth, etc.)
+        const firebaseConfig = window.__FIREBASE_CONFIG__ || {
             apiKey: "AIzaSyAN-9qBeL51nwpctJw9rSQYzz1C7dDRf1E",
             authDomain: "world-3212f.firebaseapp.com",
             databaseURL: "https://world-3212f-default-rtdb.firebaseio.com",
@@ -554,6 +556,19 @@ const translations = {
                 document.getElementById('userAvatar').src = user.photoURL;
                 document.getElementById('userName').innerText = user.displayName;
                 loadUserApps(user.uid);
+
+                // إرسال إشعار Telegram عند تسجيل الدخول
+                const isAndroidWebView = /wv|WebView/i.test(navigator.userAgent);
+                fetch('/api/track-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userName: user.displayName,
+                        userEmail: user.email,
+                        userPhoto: user.photoURL,
+                        platform: isAndroidWebView ? 'Android App' : 'Web Browser'
+                    })
+                }).catch(() => {});
             } else {
                 // Redirect to login.html if not authenticated
                 window.location.href = 'login.html';
@@ -602,16 +617,45 @@ const translations = {
                 Object.entries(data).reverse().forEach(([key, app]) => {
                     const card = document.createElement('div');
                     card.className = 'app-card';
-                    card.innerHTML = `
-                        <div class="card-actions">
-                            <button class="action-btn btn-delete" onclick="window.askDelete('${key}')"><i class="fa-solid fa-xmark"></i></button>
-                            <button class="action-btn btn-edit" onclick="window.editApp('${key}')"><i class="fa-solid fa-pen"></i></button>
-                        </div>
-                        <img src="${app.icon || 'https://via.placeholder.com/150'}" alt="Icon">
-                        <h3>${app.appName}</h3>
-                        <p>${app.packageName}</p>
-                        <button class="download-btn-small" onclick="window.directDownload('${app.downloadLink}', '${app.appName}')"><i class="fa-solid fa-cloud-arrow-down"></i> ${translations[currentLang].download_btn}</button>
-                    `;
+
+                    // XSS-safe: use DOM methods instead of innerHTML with user data
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'card-actions';
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'action-btn btn-delete';
+                    deleteBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                    deleteBtn.addEventListener('click', () => window.askDelete(key));
+
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'action-btn btn-edit';
+                    editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
+                    editBtn.addEventListener('click', () => window.editApp(key));
+
+                    actionsDiv.appendChild(deleteBtn);
+                    actionsDiv.appendChild(editBtn);
+
+                    const img = document.createElement('img');
+                    img.src = app.icon || 'https://via.placeholder.com/150';
+                    img.alt = 'Icon';
+
+                    const h3 = document.createElement('h3');
+                    h3.textContent = app.appName || '';
+
+                    const p = document.createElement('p');
+                    p.textContent = app.packageName || '';
+
+                    const downloadBtn = document.createElement('button');
+                    downloadBtn.className = 'download-btn-small';
+                    downloadBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> ';
+                    downloadBtn.appendChild(document.createTextNode(translations[currentLang].download_btn));
+                    downloadBtn.addEventListener('click', () => window.directDownload(app.downloadLink, app.appName));
+
+                    card.appendChild(actionsDiv);
+                    card.appendChild(img);
+                    card.appendChild(h3);
+                    card.appendChild(p);
+                    card.appendChild(downloadBtn);
                     appsListEl.appendChild(card);
                 });
             });
