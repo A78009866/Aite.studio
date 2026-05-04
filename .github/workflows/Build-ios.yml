@@ -5,96 +5,101 @@ on:
 
 jobs:
   build-iso:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Free up disk space
+      - name: Free Disk Space
         run: |
-          sudo rm -rf /usr/share/dotnet \
-                      /usr/local/lib/android \
-                      /opt/ghc \
-                      /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
           sudo apt-get clean
 
-      - name: Install Build Tools
+      - name: Install Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             live-build \
             debootstrap \
+            debian-archive-keyring \
             xorriso \
             squashfs-tools \
             mtools \
-            git
+            git \
+            curl \
+            wget
 
-      - name: Configure Live Build Environment
+      - name: Configure Build
         run: |
-          mkdir -p build-os
+          mkdir build-os
           cd build-os
 
           sudo lb config \
+            --mode debian \
             --distribution bookworm \
             --architecture amd64 \
             --archive-areas "main contrib non-free non-free-firmware" \
+            --mirror-bootstrap http://deb.debian.org/debian/ \
+            --mirror-chroot http://deb.debian.org/debian/ \
+            --mirror-binary http://deb.debian.org/debian/ \
             --system live \
-            --iso-application "Custom macOS KDE Linux" \
+            --bootappend-live "boot=live components" \
+            --iso-application "Custom KDE macOS Linux" \
             --iso-volume "CUSTOM_OS"
 
           sudo chown -R $USER:$USER .
 
-      - name: Add Packages
+      - name: Add KDE Packages
         run: |
           mkdir -p build-os/config/package-lists
 
-          cat << 'EOF' > build-os/config/package-lists/desktop.list.chroot
+          cat > build-os/config/package-lists/kde.list.chroot <<EOF
           kde-plasma-desktop
+          plasma-workspace
+          plasma-nm
           sddm
           konsole
           dolphin
-          network-manager-kde
+          network-manager
+          network-manager-gnome
           curl
           wget
           git
           kvantum
-          plasma-nm
-          plasma-workspace
           EOF
 
-      - name: Inject macOS Theme Hook
+      - name: Add macOS Theme Hook
         run: |
           mkdir -p build-os/config/hooks/live
 
-          cat << 'EOF' > build-os/config/hooks/live/99-macos-theme.chroot
+          cat > build-os/config/hooks/live/99-theme.chroot <<'EOF'
           #!/bin/bash
           set -e
 
-          echo "Installing WhiteSur KDE Theme..."
-
           git clone https://github.com/vinceliuice/WhiteSur-kde.git /tmp/WhiteSur-kde
           cd /tmp/WhiteSur-kde
-          ./install.sh
-
-          echo "Installing WhiteSur Icons..."
+          ./install.sh || true
 
           git clone https://github.com/vinceliuice/WhiteSur-icon-theme.git /tmp/WhiteSur-icons
           cd /tmp/WhiteSur-icons
-          ./install.sh -a
+          ./install.sh -a || true
 
           rm -rf /tmp/WhiteSur-kde
           rm -rf /tmp/WhiteSur-icons
           EOF
 
-          chmod +x build-os/config/hooks/live/99-macos-theme.chroot
+          chmod +x build-os/config/hooks/live/99-theme.chroot
 
       - name: Build ISO
         run: |
           cd build-os
+          sudo lb clean
           sudo lb build
 
-      - name: Upload ISO Artifact
+      - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
           name: custom-kde-macos-iso
