@@ -1,31 +1,40 @@
 name: Build Custom KDE macOS ISO
 
 on:
-  workflow_dispatch: # يتيح لك تشغيل البناء يدوياً من واجهة GitHub Actions
+  workflow_dispatch:
 
 jobs:
   build-iso:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Free up disk space (Optional but recommended)
+      - name: Free up disk space
         run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/share/dotnet \
+                      /usr/local/lib/android \
+                      /opt/ghc \
+                      /opt/hostedtoolcache/CodeQL
           sudo apt-get clean
 
       - name: Install Build Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y live-build debootstrap xorriso squashfs-tools mtools git
+          sudo apt-get install -y \
+            live-build \
+            debootstrap \
+            xorriso \
+            squashfs-tools \
+            mtools \
+            git
 
       - name: Configure Live Build Environment
         run: |
           mkdir -p build-os
           cd build-os
-          # إعداد التوزيعة لتكون مبنية على Debian Bookworm
+
           sudo lb config \
             --distribution bookworm \
             --architecture amd64 \
@@ -34,10 +43,12 @@ jobs:
             --iso-application "Custom macOS KDE Linux" \
             --iso-volume "CUSTOM_OS"
 
-      - name: Add Packages (KDE Minimal & Utils)
+          sudo chown -R $USER:$USER .
+
+      - name: Add Packages
         run: |
           mkdir -p build-os/config/package-lists
-          # وضع الحزم المطلوبة لسطح المكتب والأدوات
+
           cat << 'EOF' > build-os/config/package-lists/desktop.list.chroot
           kde-plasma-desktop
           sddm
@@ -48,36 +59,39 @@ jobs:
           wget
           git
           kvantum
+          plasma-nm
+          plasma-workspace
           EOF
 
       - name: Inject macOS Theme Hook
         run: |
           mkdir -p build-os/config/hooks/live
-          # هذا السكربت سيتم تنفيذه داخل النظام الجديد أثناء البناء (chroot)
+
           cat << 'EOF' > build-os/config/hooks/live/99-macos-theme.chroot
           #!/bin/bash
-          echo "=> Installing macOS Theme (WhiteSur)..."
+          set -e
+
+          echo "Installing WhiteSur KDE Theme..."
+
           git clone https://github.com/vinceliuice/WhiteSur-kde.git /tmp/WhiteSur-kde
           cd /tmp/WhiteSur-kde
-          # تثبيت الثيم بشكل عام لكل المستخدمين
-          sudo ./install.sh
-          
-          echo "=> Installing macOS Icons..."
+          ./install.sh
+
+          echo "Installing WhiteSur Icons..."
+
           git clone https://github.com/vinceliuice/WhiteSur-icon-theme.git /tmp/WhiteSur-icons
           cd /tmp/WhiteSur-icons
-          sudo ./install.sh -a
-          
-          # تنظيف الملفات المؤقتة
-          rm -rf /tmp/WhiteSur-kde /tmp/WhiteSur-icons
+          ./install.sh -a
+
+          rm -rf /tmp/WhiteSur-kde
+          rm -rf /tmp/WhiteSur-icons
           EOF
-          
-          # جعل السكربت قابلاً للتنفيذ
+
           chmod +x build-os/config/hooks/live/99-macos-theme.chroot
 
-      - name: Build the ISO
+      - name: Build ISO
         run: |
           cd build-os
-          # بدء عملية البناء (قد تستغرق 20-30 دقيقة)
           sudo lb build
 
       - name: Upload ISO Artifact
