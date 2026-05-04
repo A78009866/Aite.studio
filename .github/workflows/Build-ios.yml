@@ -52,15 +52,13 @@ jobs:
             --mirror-bootstrap http://deb.debian.org/debian/ \
             --mirror-chroot http://deb.debian.org/debian/ \
             --mirror-binary http://deb.debian.org/debian/ \
+            --security false \
             --system live \
             --bootappend-live "boot=live components" \
             --iso-application "Custom KDE macOS Linux" \
             --iso-volume "CUSTOM_OS"
 
           sudo chown -R $USER:$USER .
-
-          # إصلاح ملف sources.list لاستخدام المستودع الصحيح للأمان
-          sudo sed -i 's|deb http://deb.debian.org/debian-security bookworm/updates|deb http://deb.debian.org/debian-security bookworm-security|g' build-os/config/archives/debian.list.chroot 2>/dev/null || true
 
       - name: Add KDE Packages
         run: |
