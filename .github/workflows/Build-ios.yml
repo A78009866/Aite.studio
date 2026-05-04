@@ -21,16 +21,22 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
+
           sudo apt-get install -y \
-            live-build \
-            debootstrap \
-            debian-archive-keyring \
+            wget \
+            curl \
+            git \
             xorriso \
             squashfs-tools \
             mtools \
-            git \
-            curl \
-            wget
+            debootstrap \
+            gnupg
+
+          wget http://ftp.debian.org/debian/pool/main/d/debian-archive-keyring/debian-archive-keyring_2025.1_all.deb
+
+          sudo dpkg -i debian-archive-keyring_2025.1_all.deb
+
+          sudo apt-get install -y live-build
 
       - name: Configure Build
         run: |
@@ -41,6 +47,7 @@ jobs:
             --mode debian \
             --distribution bookworm \
             --architecture amd64 \
+            --keyring /usr/share/keyrings/debian-archive-keyring.gpg \
             --archive-areas "main contrib non-free non-free-firmware" \
             --mirror-bootstrap http://deb.debian.org/debian/ \
             --mirror-chroot http://deb.debian.org/debian/ \
@@ -64,7 +71,6 @@ jobs:
           konsole
           dolphin
           network-manager
-          network-manager-gnome
           curl
           wget
           git
